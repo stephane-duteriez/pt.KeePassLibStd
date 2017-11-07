@@ -1,0 +1,7 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/pt.KeePassLibStd/v15
+/pt.KeePassLibStd/bin/Debug
+/pt.KeePassLibStd/obj
