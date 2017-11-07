@@ -1,2 +1,2 @@
 # pt.KeePassLibStd
-KeePassLib port to .NET Standard 2.0
+KeePassLib 2.37 port to .NET Standard 2.0
