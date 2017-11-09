@@ -39,7 +39,7 @@ using KeePassLib.Utility;
 
 namespace KeePassLib.Serialization
 {
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 	internal sealed class IOWebClient : WebClient
 	{
 		private IOConnectionInfo m_ioc;
@@ -239,6 +239,7 @@ namespace KeePassLib.Serialization
 
 	public static class IOConnection
 	{
+        public static IFilesProvider m_FilesProvider = new DefaultFilesProvider();
 #if !KeePassLibSD
 		private static ProxyServerType m_pstProxyType = ProxyServerType.System;
 		private static string m_strProxyAddr = string.Empty;
@@ -268,7 +269,7 @@ namespace KeePassLib.Serialization
 
 		public static event EventHandler<IOAccessEventArgs> IOAccessPre;
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 #if !KeePassUAP
 		// Allow self-signed certificates, expired certificates, etc.
 		private static bool AcceptCertificate(object sender,
@@ -438,7 +439,7 @@ namespace KeePassLib.Serialization
 			try
 			{
 				// First try system, then default (from config)
-#if !KeePassUAP
+#if !KeePassUAP && !NETSTANDARD2_0
 				prx = WebRequest.GetSystemWebProxy();
 #endif
 				if(prx == null) prx = WebRequest.DefaultWebProxy;
@@ -484,7 +485,7 @@ namespace KeePassLib.Serialization
 
 		private static void PrepareWebAccess(IOConnectionInfo ioc)
 		{
-#if !KeePassUAP
+#if !KeePassUAP && !NETSTANDARD2_0
 			IocProperties p = ((ioc != null) ? ioc.Properties : null);
 			if(p == null) { Debug.Assert(false); p = new IocProperties(); }
 
@@ -596,11 +597,10 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenReadLocal(IOConnectionInfo ioc)
 		{
-            return new FileStream(ioc.Path, FileMode.Open, FileAccess.Read,
-				FileShare.Read);
+            return m_FilesProvider.OpenReadLocal(ioc.Path);
 		}
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 		public static Stream OpenWrite(IOConnectionInfo ioc)
 		{
 			if(ioc == null) { Debug.Assert(false); return null; }
@@ -631,8 +631,7 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenWriteLocal(IOConnectionInfo ioc)
 		{
-			return new FileStream(ioc.Path, FileMode.Create, FileAccess.Write,
-				FileShare.None);
+            return m_FilesProvider.OpenWriteLocal(ioc.Path);
 		}
 
 		public static bool FileExists(IOConnectionInfo ioc)
@@ -646,9 +645,9 @@ namespace KeePassLib.Serialization
 
 			RaiseIOAccessPreEvent(ioc, IOAccessType.Exists);
 
-			if(ioc.IsLocalFile()) return File.Exists(ioc.Path);
+			if(ioc.IsLocalFile()) return m_FilesProvider.IsFileExist(ioc.Path);
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 			if(ioc.Path.StartsWith("ftp://", StrUtil.CaseIgnoreCmp))
 			{
 				bool b = SendCommand(ioc, WebRequestMethods.Ftp.GetDateTimestamp);
@@ -683,9 +682,9 @@ namespace KeePassLib.Serialization
 		{
 			RaiseIOAccessPreEvent(ioc, IOAccessType.Delete);
 
-			if(ioc.IsLocalFile()) { File.Delete(ioc.Path); return; }
+			if(ioc.IsLocalFile()) { m_FilesProvider.DeleteFile(ioc.Path); return; }
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 			WebRequest req = CreateWebRequest(ioc);
 			if(req != null)
 			{
@@ -717,9 +716,9 @@ namespace KeePassLib.Serialization
 		{
 			RaiseIOAccessPreEvent(iocFrom, iocTo, IOAccessType.Move);
 
-			if(iocFrom.IsLocalFile()) { File.Move(iocFrom.Path, iocTo.Path); return; }
+			if(iocFrom.IsLocalFile()) { m_FilesProvider.MoveFile(iocFrom.Path, iocTo.Path); return; }
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 			WebRequest req = CreateWebRequest(iocFrom);
 			if(req != null)
 			{
@@ -782,7 +781,7 @@ namespace KeePassLib.Serialization
 			// DeleteFile(iocFrom);
 		}
 
-#if !KeePassLibSD
+#if !KeePassLibSD && !NETSTANDARD2_0
 		private static bool SendCommand(IOConnectionInfo ioc, string strMethod)
 		{
 			try

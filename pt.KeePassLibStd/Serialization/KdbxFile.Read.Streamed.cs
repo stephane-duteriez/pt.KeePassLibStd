@@ -260,7 +260,13 @@ namespace KeePassLib.Serialization
 					{
 						string strColor = ReadString(xr);
                         if (!string.IsNullOrEmpty(strColor))
-                            m_pwDatabase.Color = Color.FromName(strColor);
+                        {
+                            if (strColor.StartsWith("#"))
+                                m_pwDatabase.Color = Color.FromArgb(0xFF, Color.FromArgb(
+                                    Convert.ToInt32(strColor.Substring(1), 16)));
+                            else
+                                m_pwDatabase.Color = Color.FromName(strColor);
+                        }
 					}
 					else if(xr.Name == ElemDbKeyChanged)
 						m_pwDatabase.MasterKeyChanged = ReadTime(xr);
