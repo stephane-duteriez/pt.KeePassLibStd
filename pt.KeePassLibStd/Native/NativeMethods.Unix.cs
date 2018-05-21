@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -112,10 +112,10 @@ namespace KeePassLib.Native
 		}
 #endif
 
-        // =============================================================
-        // LibGCrypt 1.8.1
+		// =============================================================
+		// LibGCrypt 1.8.1
 
-        private const string LibGCrypt = "libgcrypt.so.20";
+		private const string LibGCrypt = "libgcrypt.so.20";
 
 		internal const int GCRY_CIPHER_AES256 = 9;
 		internal const int GCRY_CIPHER_MODE_ECB = 1;

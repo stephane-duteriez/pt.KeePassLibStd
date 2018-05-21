@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -63,15 +63,8 @@ namespace KeePassLib.Keys
 		/// </summary>
 		public KcpUserAccount()
 		{
-			// Test if ProtectedData is supported -- throws an exception
-			// when running on an old system (Windows 98 / ME).
-			byte[] pbDummyData = new byte[128];
-#if NETSTANDARD2_0
-  //          Crypto.EncryptStringAES(pbDummyData)
-#else
-            ProtectedData.Protect(pbDummyData, m_pbEntropy,
-				DataProtectionScope.CurrentUser);
-#endif
+			if(!CryptoUtil.IsProtectedDataSupported)
+				throw new PlatformNotSupportedException(); // Windows 98/ME
 
 			byte[] pbKey = LoadUserKey(false);
 			if(pbKey == null) pbKey = CreateUserKey();
@@ -118,14 +111,9 @@ namespace KeePassLib.Keys
 			{
 				string strFilePath = GetUserKeyFilePath(false);
 				byte[] pbProtectedKey = File.ReadAllBytes(strFilePath);
-#if NETSTANDARD2_0
-                CryptoUtil.Salt = m_pbEntropy;
-                pbKey = CryptoUtil.DecryptStringAES(pbProtectedKey,
-                    CryptoUtil.SharedSecret);
-#else
-                pbKey = ProtectedData.Unprotect(pbProtectedKey, m_pbEntropy,
+
+				pbKey = CryptoUtil.UnprotectData(pbProtectedKey, m_pbEntropy,
 					DataProtectionScope.CurrentUser);
-#endif
 			}
 			catch(Exception)
 			{
@@ -134,7 +122,7 @@ namespace KeePassLib.Keys
 			}
 #endif
 
-                return pbKey;
+			return pbKey;
 		}
 
 		private static byte[] CreateUserKey()
@@ -145,15 +133,10 @@ namespace KeePassLib.Keys
 			string strFilePath = GetUserKeyFilePath(true);
 
 			byte[] pbRandomKey = CryptoRandom.Instance.GetRandomBytes(64);
-#if NETSTANDARD2_0
-            byte[] pbProtectedKey = CryptoUtil.DecryptStringAES(
-                m_pbEntropy, CryptoUtil.SharedSecret);
-#else
-            byte[] pbProtectedKey = ProtectedData.Protect(pbRandomKey,
+			byte[] pbProtectedKey = CryptoUtil.ProtectData(pbRandomKey,
 				m_pbEntropy, DataProtectionScope.CurrentUser);
-#endif
 
-            File.WriteAllBytes(strFilePath, pbProtectedKey);
+			File.WriteAllBytes(strFilePath, pbProtectedKey);
 
 			byte[] pbKey = LoadUserKey(true);
 			Debug.Assert(MemUtil.ArraysEqual(pbKey, pbRandomKey));

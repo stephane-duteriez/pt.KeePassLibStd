@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -51,24 +51,6 @@ namespace KeePassLib.Native
 		{
 			get { return m_bAllowNative; }
 			set { m_bAllowNative = value; }
-		}
-
-		private static int? g_oiPointerSize = null;
-		/// <summary>
-		/// Size of a native pointer (in bytes).
-		/// </summary>
-		public static int PointerSize
-		{
-			get
-			{
-				if(!g_oiPointerSize.HasValue)
-#if KeePassUAP
-					g_oiPointerSize = Marshal.SizeOf<IntPtr>();
-#else
-					g_oiPointerSize = Marshal.SizeOf(typeof(IntPtr));
-#endif
-				return g_oiPointerSize.Value;
-			}
 		}
 
 		private static ulong? m_ouMonoVersion = null;
@@ -158,8 +140,8 @@ namespace KeePassLib.Native
 #endif
 
 #if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
-            // Mono returns PlatformID.Unix on Mac OS X, workaround this
-            if (m_platID.Value == PlatformID.Unix)
+			// Mono returns PlatformID.Unix on Mac OS X, workaround this
+			if(m_platID.Value == PlatformID.Unix)
 			{
 				if((RunConsoleApp("uname", null) ?? string.Empty).Trim().Equals(
 					"Darwin", StrUtil.CaseIgnoreCmp))
@@ -167,7 +149,7 @@ namespace KeePassLib.Native
 			}
 #endif
 
-            return m_platID.Value;
+			return m_platID.Value;
 		}
 
 		private static DesktopType? m_tDesktop = null;
@@ -195,19 +177,21 @@ namespace KeePassLib.Native
 							t = DesktopType.Xfce;
 						else if(strXdg.Equals("MATE", sc))
 							t = DesktopType.Mate;
-						else if(strXdg.Equals("X-Cinnamon", sc))
+						else if(strXdg.Equals("X-Cinnamon", sc)) // Mint 18.3
 							t = DesktopType.Cinnamon;
 						else if(strXdg.Equals("Pantheon", sc)) // Elementary OS
 							t = DesktopType.Pantheon;
-						else if(strXdg.Equals("KDE", sc) || // Mint 16
+						else if(strXdg.Equals("KDE", sc) || // Mint 16, Kubuntu 17.10
 							strGdm.Equals("kde-plasma", sc)) // Ubuntu 12.04
 							t = DesktopType.Kde;
 						else if(strXdg.Equals("GNOME", sc))
 						{
 							if(strGdm.Equals("cinnamon", sc)) // Mint 13
 								t = DesktopType.Cinnamon;
-							else t = DesktopType.Gnome;
+							else t = DesktopType.Gnome; // Fedora 27
 						}
+						else if(strXdg.Equals("ubuntu:GNOME", sc))
+							t = DesktopType.Gnome;
 					}
 					catch(Exception) { Debug.Assert(false); }
 				}
@@ -243,6 +227,7 @@ namespace KeePassLib.Native
 
 			RunProcessDelegate fnRun = delegate()
 			{
+				Process pToDispose = null;
 				try
 				{
 					ProcessStartInfo psi = new ProcessStartInfo();
@@ -258,6 +243,7 @@ namespace KeePassLib.Native
 					if(!string.IsNullOrEmpty(strParams)) psi.Arguments = strParams;
 
 					Process p = Process.Start(psi);
+					pToDispose = p;
 
 					if(strStdInput != null)
 					{
@@ -274,9 +260,11 @@ namespace KeePassLib.Native
 						p.WaitForExit();
 					else if((f & AppRunFlags.GCKeepAlive) != AppRunFlags.None)
 					{
+						pToDispose = null; // Thread disposes it
+
 						Thread th = new Thread(delegate()
 						{
-							try { p.WaitForExit(); }
+							try { p.WaitForExit(); p.Dispose(); }
 							catch(Exception) { Debug.Assert(false); }
 						});
 						th.Start();
@@ -289,6 +277,11 @@ namespace KeePassLib.Native
 #else
 				catch(Exception) { }
 #endif
+				finally
+				{
+					try { if(pToDispose != null) pToDispose.Dispose(); }
+					catch(Exception) { Debug.Assert(false); }
+				}
 
 				return null;
 			};
@@ -361,14 +354,14 @@ namespace KeePassLib.Native
 		}
 #endif
 
-        /// <summary>
-        /// Transform a key.
-        /// </summary>
-        /// <param name="pBuf256">Source and destination buffer.</param>
-        /// <param name="pKey256">Key to use in the transformation.</param>
-        /// <param name="uRounds">Number of transformation rounds.</param>
-        /// <returns>Returns <c>true</c>, if the key was transformed successfully.</returns>
-        public static bool TransformKey256(byte[] pBuf256, byte[] pKey256,
+		/// <summary>
+		/// Transform a key.
+		/// </summary>
+		/// <param name="pBuf256">Source and destination buffer.</param>
+		/// <param name="pKey256">Key to use in the transformation.</param>
+		/// <param name="uRounds">Number of transformation rounds.</param>
+		/// <returns>Returns <c>true</c>, if the key was transformed successfully.</returns>
+		public static bool TransformKey256(byte[] pBuf256, byte[] pKey256,
 			ulong uRounds)
 		{
 #if KeePassUAP

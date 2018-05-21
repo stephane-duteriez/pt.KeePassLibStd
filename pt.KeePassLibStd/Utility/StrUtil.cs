@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -32,10 +32,10 @@ using System.Security.Cryptography;
 #endif
 
 using KeePassLib.Collections;
+using KeePassLib.Cryptography;
 using KeePassLib.Cryptography.PasswordGenerator;
 using KeePassLib.Native;
 using KeePassLib.Security;
-using KeePassLib.Cryptography;
 
 namespace KeePassLib.Utility
 {
@@ -183,10 +183,10 @@ namespace KeePassLib.Utility
 		}
 	}
 
-    /// <summary>
-    /// A class containing various string helper methods.
-    /// </summary>
-    public static class StrUtil
+	/// <summary>
+	/// A class containing various string helper methods.
+	/// </summary>
+	public static class StrUtil
 	{
 		public const StringComparison CaseIgnoreCmp = StringComparison.OrdinalIgnoreCase;
 
@@ -300,20 +300,49 @@ namespace KeePassLib.Utility
 			return ("\\u" + sh.ToString(NumberFormatInfo.InvariantInfo) + "?");
 		}
 
+		public static string RtfFix(string strRtf)
+		{
+			if(strRtf == null) { Debug.Assert(false); return string.Empty; }
+
+			string str = strRtf;
+
+			// Workaround for .NET bug: the Rtf property of a RichTextBox
+			// can return an RTF text starting with "{\\urtf", but
+			// setting such an RTF text throws an exception (the setter
+			// checks for the RTF text to start with "{\\rtf");
+			// https://sourceforge.net/p/keepass/discussion/329221/thread/7788872f/
+			// https://www.microsoft.com/en-us/download/details.aspx?id=10725
+			// https://msdn.microsoft.com/en-us/library/windows/desktop/bb774284.aspx
+			// https://referencesource.microsoft.com/#System.Windows.Forms/winforms/Managed/System/WinForms/RichTextBox.cs
+			const string p = "{\\urtf"; // Typically "{\\urtf1\\ansi\\ansicpg65001"
+			if(str.StartsWith(p) && (str.Length > p.Length) &&
+				char.IsDigit(str[p.Length]))
+				str = str.Remove(2, 1); // Remove the 'u'
+
+			return str;
+		}
+
 		/// <summary>
-		/// Convert a string into a valid HTML sequence representing that string.
+		/// Convert a string to a HTML sequence representing that string.
 		/// </summary>
 		/// <param name="str">String to convert.</param>
 		/// <returns>String, HTML-encoded.</returns>
 		public static string StringToHtml(string str)
 		{
+			return StringToHtml(str, false);
+		}
+
+		internal static string StringToHtml(string str, bool bNbsp)
+		{
 			Debug.Assert(str != null); if(str == null) throw new ArgumentNullException("str");
 
-			str = str.Replace(@"&", @"&amp;");
+			str = str.Replace(@"&", @"&amp;"); // Must be first
 			str = str.Replace(@"<", @"&lt;");
 			str = str.Replace(@">", @"&gt;");
 			str = str.Replace("\"", @"&quot;");
 			str = str.Replace("\'", @"&#39;");
+
+			if(bNbsp) str = str.Replace(" ", @"&nbsp;"); // Before <br />
 
 			str = NormalizeNewLines(str, false);
 			str = str.Replace("\n", @"<br />" + MessageService.NewLine);
@@ -490,13 +519,13 @@ namespace KeePassLib.Utility
 		{
 			string strText = string.Empty;
 			
-			if(excp.Message != null)
+			if(!string.IsNullOrEmpty(excp.Message))
 				strText += excp.Message + MessageService.NewLine;
 #if !KeePassLibSD
-			if(excp.Source != null)
+			if(!string.IsNullOrEmpty(excp.Source))
 				strText += excp.Source + MessageService.NewLine;
 #endif
-			if(excp.StackTrace != null)
+			if(!string.IsNullOrEmpty(excp.StackTrace))
 				strText += excp.StackTrace + MessageService.NewLine;
 #if !KeePassLibSD
 #if !KeePassUAP
@@ -516,13 +545,13 @@ namespace KeePassLib.Utility
 			if(excp.InnerException != null)
 			{
 				strText += MessageService.NewLine + "Inner:" + MessageService.NewLine;
-				if(excp.InnerException.Message != null)
+				if(!string.IsNullOrEmpty(excp.InnerException.Message))
 					strText += excp.InnerException.Message + MessageService.NewLine;
 #if !KeePassLibSD
-				if(excp.InnerException.Source != null)
+				if(!string.IsNullOrEmpty(excp.InnerException.Source))
 					strText += excp.InnerException.Source + MessageService.NewLine;
 #endif
-				if(excp.InnerException.StackTrace != null)
+				if(!string.IsNullOrEmpty(excp.InnerException.StackTrace))
 					strText += excp.InnerException.StackTrace + MessageService.NewLine;
 #if !KeePassLibSD
 #if !KeePassUAP
@@ -676,19 +705,19 @@ namespace KeePassLib.Utility
 #endif
 		}
 
-		public static string CompactString3Dots(string strText, int nMaxChars)
+		public static string CompactString3Dots(string strText, int cchMax)
 		{
 			Debug.Assert(strText != null);
 			if(strText == null) throw new ArgumentNullException("strText");
-			Debug.Assert(nMaxChars >= 0);
-			if(nMaxChars < 0) throw new ArgumentOutOfRangeException("nMaxChars");
+			Debug.Assert(cchMax >= 0);
+			if(cchMax < 0) throw new ArgumentOutOfRangeException("cchMax");
 
-			if(nMaxChars == 0) return string.Empty;
-			if(strText.Length <= nMaxChars) return strText;
+			if(strText.Length <= cchMax) return strText;
 
-			if(nMaxChars <= 3) return strText.Substring(0, nMaxChars);
+			if(cchMax == 0) return string.Empty;
+			if(cchMax <= 3) return new string('.', cchMax);
 
-			return strText.Substring(0, nMaxChars - 3) + "...";
+			return strText.Substring(0, cchMax - 3) + "...";
 		}
 
 		public static string GetStringBetween(string strText, int nStartIndex,
@@ -1125,27 +1154,53 @@ namespace KeePassLib.Utility
 			return str;
 		}
 
-		private static char[] m_vNewLineChars = null;
 		public static void NormalizeNewLines(ProtectedStringDictionary dict,
 			bool bWindows)
 		{
 			if(dict == null) { Debug.Assert(false); return; }
 
-			if(m_vNewLineChars == null)
-				m_vNewLineChars = new char[]{ '\r', '\n' };
-
-			List<string> vKeys = dict.GetKeys();
-			foreach(string strKey in vKeys)
+			List<string> lKeys = dict.GetKeys();
+			foreach(string strKey in lKeys)
 			{
 				ProtectedString ps = dict.Get(strKey);
 				if(ps == null) { Debug.Assert(false); continue; }
 
-				string strValue = ps.ReadString();
-				if(strValue.IndexOfAny(m_vNewLineChars) < 0) continue;
-
-				dict.Set(strKey, new ProtectedString(ps.IsProtected,
-					NormalizeNewLines(strValue, bWindows)));
+				char[] v = ps.ReadChars();
+				if(!IsNewLineNormalized(v, bWindows))
+					dict.Set(strKey, new ProtectedString(ps.IsProtected,
+						NormalizeNewLines(ps.ReadString(), bWindows)));
+				MemUtil.ZeroArray<char>(v);
 			}
+		}
+
+		internal static bool IsNewLineNormalized(char[] v, bool bWindows)
+		{
+			if(v == null) { Debug.Assert(false); return true; }
+
+			if(bWindows)
+			{
+				int iFreeCr = -2; // Must be < -1 (for test "!= (i - 1)")
+
+				for(int i = 0; i < v.Length; ++i)
+				{
+					char ch = v[i];
+
+					if(ch == '\r')
+					{
+						if(iFreeCr >= 0) return false;
+						iFreeCr = i;
+					}
+					else if(ch == '\n')
+					{
+						if(iFreeCr != (i - 1)) return false;
+						iFreeCr = -2; // Consume \r
+					}
+				}
+
+				return (iFreeCr < 0); // Ensure no \r at end
+			}
+
+			return (Array.IndexOf<char>(v, '\r') < 0);
 		}
 
 		public static string GetNewLineSeq(string str)
@@ -1297,24 +1352,18 @@ namespace KeePassLib.Utility
 
 		private static readonly byte[] m_pbOptEnt = { 0xA5, 0x74, 0x2E, 0xEC };
 
-        public static string EncryptString(string strPlainText)
+		public static string EncryptString(string strPlainText)
 		{
 			if(string.IsNullOrEmpty(strPlainText)) return string.Empty;
 
 			try
 			{
 				byte[] pbPlain = StrUtil.Utf8.GetBytes(strPlainText);
-#if NETSTANDARD2_0
-                CryptoUtil.Salt = m_pbOptEnt;
-                byte[] pbEnc = Encoding.UTF8.GetBytes(CryptoUtil.
-                    EncryptStringAES(strPlainText, CryptoUtil.SharedSecret));
-#else
-                byte[] pbEnc = ProtectedData.Protect(pbPlain, m_pbOptEnt,
+				byte[] pbEnc = CryptoUtil.ProtectData(pbPlain, m_pbOptEnt,
 					DataProtectionScope.CurrentUser);
-#endif
 
 #if (!KeePassLibSD && !KeePassUAP)
-                return Convert.ToBase64String(pbEnc, Base64FormattingOptions.None);
+				return Convert.ToBase64String(pbEnc, Base64FormattingOptions.None);
 #else
 				return Convert.ToBase64String(pbEnc);
 #endif
@@ -1331,16 +1380,10 @@ namespace KeePassLib.Utility
 			try
 			{
 				byte[] pbEnc = Convert.FromBase64String(strCipherText);
-#if NETSTANDARD2_0
-                CryptoUtil.Salt = m_pbOptEnt;
-                return CryptoUtil.DecryptStringAES(
-                    Encoding.UTF8.GetString(pbEnc), CryptoUtil.SharedSecret);
-#else
-                byte[] pbPlain = ProtectedData.Unprotect(pbEnc, m_pbOptEnt,
+				byte[] pbPlain = CryptoUtil.UnprotectData(pbEnc, m_pbOptEnt,
 					DataProtectionScope.CurrentUser);
-				return StrUtil.Utf8.GetString(pbPlain, 0, pbPlain.Length);
-#endif
 
+				return StrUtil.Utf8.GetString(pbPlain, 0, pbPlain.Length);
 			}
 			catch(Exception) { Debug.Assert(false); }
 

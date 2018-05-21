@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ namespace KeePassLib.Utility
 			finally { ms.Close(); }
 		}
 #else
-        public static Image LoadImage(byte[] pb)
+		public static Image LoadImage(byte[] pb)
 		{
 			if(pb == null) throw new ArgumentNullException("pb");
 
@@ -111,7 +111,7 @@ namespace KeePassLib.Utility
                     }
                 }
 #elif !KeePassLibSD
-                imgSrc = Image.FromStream(s);
+				imgSrc = Image.FromStream(s);
 				Bitmap bmp = new Bitmap(imgSrc.Width, imgSrc.Height,
 					PixelFormat.Format32bppArgb);
 
@@ -123,7 +123,7 @@ namespace KeePassLib.Utility
 				}
 				catch(Exception) { Debug.Assert(false); }
 #else
-                imgSrc = new Bitmap(s);
+				imgSrc = new Bitmap(s);
 				Bitmap bmp = new Bitmap(imgSrc.Width, imgSrc.Height);
 
 				using(Graphics g = Graphics.FromImage(bmp))
@@ -139,7 +139,7 @@ namespace KeePassLib.Utility
 
 				return bmp;
 #endif
-            }
+			}
 			finally { if(imgSrc != null) imgSrc.Dispose(); }
 		}
 
@@ -436,7 +436,7 @@ namespace KeePassLib.Utility
 #endif // !KeePassLibSD
 #endif // KeePassUAP
 
-        internal static string ImageToDataUri(Image img)
+		internal static string ImageToDataUri(Image img)
 		{
 			if(img == null) { Debug.Assert(false); return string.Empty; }
 
@@ -451,7 +451,7 @@ namespace KeePassLib.Utility
                 stream.CopyTo(ms);
                 //img.Save(Splat.CompressedBitmapFormat.Png, 80, ms);
 #else
-                img.Save(ms, ImageFormat.Png);
+				img.Save(ms, ImageFormat.Png);
 #endif
 				pb = ms.ToArray();
 			}

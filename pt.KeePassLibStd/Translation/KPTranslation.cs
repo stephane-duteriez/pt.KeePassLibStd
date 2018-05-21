@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -108,28 +108,22 @@ namespace KeePassLib.Translation
 		public static void Save(KPTranslation kpTrl, Stream sOut,
 			IXmlSerializerEx xs)
 		{
-			if(xs == null) throw new ArgumentNullException("xs");
+            if (xs == null) throw new ArgumentNullException("xs");
 
 #if !KeePassLibSD
-			GZipStream gz = new GZipStream(sOut, CompressionMode.Compress);
+            using (GZipStream gz = new GZipStream(sOut, CompressionMode.Compress))
 #else
-			GZipOutputStream gz = new GZipOutputStream(sOut);
+			using(GZipOutputStream gz = new GZipOutputStream(sOut))
 #endif
+            {
+                using (XmlWriter xw = XmlUtilEx.CreateXmlWriter(gz))
+                {
+                    xs.Serialize(xw, kpTrl);
+                }
+            }
 
-			XmlWriterSettings xws = new XmlWriterSettings();
-			xws.CheckCharacters = true;
-			xws.Encoding = StrUtil.Utf8;
-			xws.Indent = true;
-			xws.IndentChars = "\t";
-
-			XmlWriter xw = XmlWriter.Create(gz, xws);
-
-			xs.Serialize(xw, kpTrl);
-
-			xw.Close();
-			gz.Close();
-			sOut.Close();
-		}
+            sOut.Close();
+        }
 
 		public static KPTranslation Load(string strFile, IXmlSerializerEx xs)
 		{
@@ -148,15 +142,17 @@ namespace KeePassLib.Translation
 		{
 			if(xs == null) throw new ArgumentNullException("xs");
 
+			KPTranslation kpTrl = null;
+
 #if !KeePassLibSD
-			GZipStream gz = new GZipStream(s, CompressionMode.Decompress);
+			using(GZipStream gz = new GZipStream(s, CompressionMode.Decompress))
 #else
-			GZipInputStream gz = new GZipInputStream(s);
+			using(GZipInputStream gz = new GZipInputStream(s))
 #endif
+			{
+				kpTrl = (xs.Deserialize(gz) as KPTranslation);
+			}
 
-			KPTranslation kpTrl = (xs.Deserialize(gz) as KPTranslation);
-
-			gz.Close();
 			s.Close();
 			return kpTrl;
 		}
@@ -312,5 +308,5 @@ namespace KeePassLib.Translation
 			if(kpst != null) kpst.ApplyTo(tsic);
 		}
 #endif
-    }
+	}
 }

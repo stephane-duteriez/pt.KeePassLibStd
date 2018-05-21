@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -95,36 +95,10 @@ namespace KeePassLib.Serialization
 
 		private void ReadXmlStreamed(Stream sXml, Stream sParent)
 		{
-			ReadDocumentStreamed(CreateXmlReader(sXml), sParent);
-		}
-
-		internal static XmlReaderSettings CreateStdXmlReaderSettings()
-		{
-			XmlReaderSettings xrs = new XmlReaderSettings();
-
-			xrs.CloseInput = true;
-			xrs.IgnoreComments = true;
-			xrs.IgnoreProcessingInstructions = true;
-			xrs.IgnoreWhitespace = true;
-
-#if KeePassUAP || NETSTANDARD2_0
-			xrs.DtdProcessing = DtdProcessing.Prohibit;
-#else
-#if !KeePassLibSD
-			// Also see PrepMonoDev.sh script
-			xrs.ProhibitDtd = true; // Obsolete in .NET 4, but still there
-			// xrs.DtdProcessing = DtdProcessing.Prohibit; // .NET 4 only
-#endif
-			xrs.ValidationType = ValidationType.None;
-#endif
-
-			return xrs;
-		}
-
-		private static XmlReader CreateXmlReader(Stream readerStream)
-		{
-			XmlReaderSettings xrs = CreateStdXmlReaderSettings();
-			return XmlReader.Create(readerStream, xrs);
+			using(XmlReader xr = XmlUtilEx.CreateXmlReader(sXml))
+			{
+				ReadDocumentStreamed(xr, sParent);
+			}
 		}
 
 		private void ReadDocumentStreamed(XmlReader xr, Stream sParentStream)

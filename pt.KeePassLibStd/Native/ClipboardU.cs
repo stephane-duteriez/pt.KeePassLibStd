@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ using System.Text;
 namespace KeePassLib.Native
 {
 #if !NETSTANDARD2_0
-    internal static class ClipboardU
+	internal static class ClipboardU
 	{
 		private const string XSel = "xsel";
 		private const string XSelV = "--version";
@@ -62,100 +62,100 @@ namespace KeePassLib.Native
 		}
 #endif
 
-        // =============================================================
-        // LibGTK
+		// =============================================================
+		// LibGTK
 
-        // Even though GTK+ 3 appears to be loaded already, performing a
-        // P/Invoke of LibGTK's gtk_init_check function terminates the
-        // process (!) with the following error message:
-        // "Gtk-ERROR **: GTK+ 2.x symbols detected. Using GTK+ 2.x and
-        // GTK+ 3 in the same process is not supported".
+		// Even though GTK+ 3 appears to be loaded already, performing a
+		// P/Invoke of LibGTK's gtk_init_check function terminates the
+		// process (!) with the following error message:
+		// "Gtk-ERROR **: GTK+ 2.x symbols detected. Using GTK+ 2.x and
+		// GTK+ 3 in the same process is not supported".
 
-        /* private static bool GtkInit()
-        {
-            try
-            {
-                // GTK requires GLib;
-                // the following throws if and only if GLib is unavailable
-                NativeMethods.g_free(IntPtr.Zero);
+		/* private static bool GtkInit()
+		{
+			try
+			{
+				// GTK requires GLib;
+				// the following throws if and only if GLib is unavailable
+				NativeMethods.g_free(IntPtr.Zero);
 
-                if(NativeMethods.gtk_init_check(IntPtr.Zero, IntPtr.Zero) !=
-                    NativeMethods.G_FALSE)
-                    return true;
+				if(NativeMethods.gtk_init_check(IntPtr.Zero, IntPtr.Zero) !=
+					NativeMethods.G_FALSE)
+					return true;
 
-                Debug.Assert(false);
-            }
-            catch(Exception) { Debug.Assert(false); }
+				Debug.Assert(false);
+			}
+			catch(Exception) { Debug.Assert(false); }
 
-            return false;
-        }
+			return false;
+		}
 
-        private static string GtkGetText()
-        {
-            IntPtr lpText = IntPtr.Zero;
-            try
-            {
-                if(GtkInit())
-                {
-                    IntPtr h = NativeMethods.gtk_clipboard_get(
-                        NativeMethods.GDK_SELECTION_CLIPBOARD);
-                    if(h != IntPtr.Zero)
-                    {
-                        lpText = NativeMethods.gtk_clipboard_wait_for_text(h);
-                        if(lpText != IntPtr.Zero)
-                            return NativeMethods.Utf8ZToString(lpText);
-                    }
-                }
-            }
-            catch(Exception) { Debug.Assert(false); }
-            finally
-            {
-                try { NativeMethods.g_free(lpText); }
-                catch(Exception) { Debug.Assert(false); }
-            }
+		private static string GtkGetText()
+		{
+			IntPtr lpText = IntPtr.Zero;
+			try
+			{
+				if(GtkInit())
+				{
+					IntPtr h = NativeMethods.gtk_clipboard_get(
+						NativeMethods.GDK_SELECTION_CLIPBOARD);
+					if(h != IntPtr.Zero)
+					{
+						lpText = NativeMethods.gtk_clipboard_wait_for_text(h);
+						if(lpText != IntPtr.Zero)
+							return NativeMethods.Utf8ZToString(lpText);
+					}
+				}
+			}
+			catch(Exception) { Debug.Assert(false); }
+			finally
+			{
+				try { NativeMethods.g_free(lpText); }
+				catch(Exception) { Debug.Assert(false); }
+			}
 
-            return null;
-        }
+			return null;
+		}
 
-        private static bool GtkSetText(string str)
-        {
-            IntPtr lpText = IntPtr.Zero;
-            try
-            {
-                if(GtkInit())
-                {
-                    lpText = NativeMethods.Utf8ZFromString(str ?? string.Empty);
-                    if(lpText == IntPtr.Zero) { Debug.Assert(false); return false; }
+		private static bool GtkSetText(string str)
+		{
+			IntPtr lpText = IntPtr.Zero;
+			try
+			{
+				if(GtkInit())
+				{
+					lpText = NativeMethods.Utf8ZFromString(str ?? string.Empty);
+					if(lpText == IntPtr.Zero) { Debug.Assert(false); return false; }
 
-                    bool b = false;
-                    for(int i = 0; i < 2; ++i)
-                    {
-                        IntPtr h = NativeMethods.gtk_clipboard_get((i == 0) ?
-                            NativeMethods.GDK_SELECTION_PRIMARY :
-                            NativeMethods.GDK_SELECTION_CLIPBOARD);
-                        if(h != IntPtr.Zero)
-                        {
-                            NativeMethods.gtk_clipboard_clear(h);
-                            NativeMethods.gtk_clipboard_set_text(h, lpText, -1);
-                            NativeMethods.gtk_clipboard_store(h);
-                            b = true;
-                        }
-                    }
+					bool b = false;
+					for(int i = 0; i < 2; ++i)
+					{
+						IntPtr h = NativeMethods.gtk_clipboard_get((i == 0) ?
+							NativeMethods.GDK_SELECTION_PRIMARY :
+							NativeMethods.GDK_SELECTION_CLIPBOARD);
+						if(h != IntPtr.Zero)
+						{
+							NativeMethods.gtk_clipboard_clear(h);
+							NativeMethods.gtk_clipboard_set_text(h, lpText, -1);
+							NativeMethods.gtk_clipboard_store(h);
+							b = true;
+						}
+					}
 
-                    return b;
-                }
-            }
-            catch(Exception) { Debug.Assert(false); }
-            finally { NativeMethods.Utf8ZFree(lpText); }
+					return b;
+				}
+			}
+			catch(Exception) { Debug.Assert(false); }
+			finally { NativeMethods.Utf8ZFree(lpText); }
 
-            return false;
-        } */
+			return false;
+		} */
 
-        // =============================================================
-        // XSel
+		// =============================================================
+		// XSel
 
 #if !NETSTANDARD2_0
-        private static bool XSelInit()
+		private static bool XSelInit()
 		{
 			if(g_obXSel.HasValue) return g_obXSel.Value;
 
@@ -189,6 +189,6 @@ namespace KeePassLib.Native
 			return (NativeLib.RunConsoleApp(XSel, XSelW + strOpt,
 				str, XSelWF) != null);
 		}
-    }
+	}
 #endif
 }

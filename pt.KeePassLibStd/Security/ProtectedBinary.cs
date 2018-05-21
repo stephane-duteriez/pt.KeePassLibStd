@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -48,9 +48,8 @@ namespace KeePassLib.Security
 		long lID);
 
 	/// <summary>
-	/// Represents a protected binary, i.e. a byte array that is encrypted
-	/// in memory. A <c>ProtectedBinary</c> object is immutable and
-	/// thread-safe.
+	/// A protected binary, i.e. a byte array that is encrypted in memory.
+	/// A <c>ProtectedBinary</c> object is immutable and thread-safe.
 	/// </summary>
 	public sealed class ProtectedBinary : IEquatable<ProtectedBinary>
 	{
@@ -75,7 +74,7 @@ namespace KeePassLib.Security
 		private enum PbMemProt
 		{
 			None = 0,
-			ProtectedMemory,
+			ProtectedMemory, // DPAPI on Windows
 			ChaCha20,
 			ExtCrypt
 		}
@@ -94,7 +93,8 @@ namespace KeePassLib.Security
 				bool? ob = g_obProtectedMemorySupported;
 				if(ob.HasValue) return ob.Value;
 
-				// Mono does not implement any encryption for ProtectedMemory;
+				// Mono does not implement any encryption for ProtectedMemory
+				// on Linux (Mono uses DPAPI on Windows);
 				// https://sourceforge.net/p/keepass/feature-requests/1907/
 				if(NativeLib.IsUnix())
 				{
@@ -111,12 +111,11 @@ namespace KeePassLib.Security
 					for(int i = 0; i < pb.Length; ++i) pb[i] = (byte)i;
 
 #if NETSTANDARD2_0
-                    pb = CryptoUtil.EncryptBytesAES(pb, CryptoUtil.SharedSecret);
+                    pb = CryptoUtil.ProtectData(pb, null, DataProtectionScope.CurrentUser);
 #else
-                    ProtectedMemory.Protect(pb, MemoryProtectionScope.SameProcess);
+					ProtectedMemory.Protect(pb, MemoryProtectionScope.SameProcess);
 #endif
-
-                    for(int i = 0; i < pb.Length; ++i)
+                    for (int i = 0; i < pb.Length; ++i)
 					{
 						if(pb[i] != (byte)i) { ob = true; break; }
 					}
@@ -185,7 +184,7 @@ namespace KeePassLib.Security
 		/// i.e. the caller is responsible for clearing it.</param>
 		public ProtectedBinary(bool bEnableProtection, byte[] pbData)
 		{
-			if(pbData == null) throw new ArgumentNullException("pbData");
+			if(pbData == null) throw new ArgumentNullException("pbData"); // For .Length
 
 			Init(bEnableProtection, pbData, 0, pbData.Length);
 		}
@@ -221,9 +220,8 @@ namespace KeePassLib.Security
 			if(xbProtected == null) throw new ArgumentNullException("xbProtected");
 
 			byte[] pb = xbProtected.ReadPlainText();
-			Init(bEnableProtection, pb, 0, pb.Length);
-
-			if(bEnableProtection) MemUtil.ZeroByteArray(pb);
+			try { Init(bEnableProtection, pb, 0, pb.Length); }
+			finally { if(bEnableProtection) MemUtil.ZeroByteArray(pb); }
 		}
 
 		private void Init(bool bEnableProtection, byte[] pbData, int iOffset,
@@ -278,13 +276,12 @@ namespace KeePassLib.Security
 			if(ProtectedBinary.ProtectedMemorySupported)
 			{
 #if NETSTANDARD2_0
-                m_pbData = CryptoUtil.EncryptBytesAES(m_pbData,
-                    CryptoUtil.SharedSecret);
+                m_pbData = CryptoUtil.ProtectData(m_pbData, null, DataProtectionScope.CurrentUser);
 #else
                 ProtectedMemory.Protect(m_pbData, MemoryProtectionScope.SameProcess);
 #endif
 
-                m_mp = PbMemProt.ProtectedMemory;
+				m_mp = PbMemProt.ProtectedMemory;
 				return;
 			}
 
@@ -310,26 +307,26 @@ namespace KeePassLib.Security
 		{
 			if(m_pbData.Length == 0) return;
 
-            if (m_mp == PbMemProt.ProtectedMemory)
+			if(m_mp == PbMemProt.ProtectedMemory)
             {
 #if NETSTANDARD2_0
-                m_pbData = CryptoUtil.DecryptStringAES(m_pbData, CryptoUtil.SharedSecret);
+                m_pbData = CryptoUtil.UnprotectData(m_pbData, null, DataProtectionScope.CurrentUser);
 #else
-                ProtectedMemory.Unprotect(m_pbData, MemoryProtectionScope.SameProcess);
+				ProtectedMemory.Unprotect(m_pbData, MemoryProtectionScope.SameProcess);
 #endif
             }
-            else if (m_mp == PbMemProt.ChaCha20)
-            {
-                byte[] pbIV = new byte[12];
-                MemUtil.UInt64ToBytesEx((ulong)m_lID, pbIV, 4);
-                using (ChaCha20Cipher c = new ChaCha20Cipher(g_pbKey32, pbIV, true))
-                {
-                    c.Decrypt(m_pbData, 0, m_pbData.Length);
-                }
-            }
-            else if (m_mp == PbMemProt.ExtCrypt)
-                m_fExtCrypt(m_pbData, PbCryptFlags.Decrypt, m_lID);
-            else { Debug.Assert(m_mp == PbMemProt.None); }
+			else if(m_mp == PbMemProt.ChaCha20)
+			{
+				byte[] pbIV = new byte[12];
+				MemUtil.UInt64ToBytesEx((ulong)m_lID, pbIV, 4);
+				using(ChaCha20Cipher c = new ChaCha20Cipher(g_pbKey32, pbIV, true))
+				{
+					c.Decrypt(m_pbData, 0, m_pbData.Length);
+				}
+			}
+			else if(m_mp == PbMemProt.ExtCrypt)
+				m_fExtCrypt(m_pbData, PbCryptFlags.Decrypt, m_lID);
+			else { Debug.Assert(m_mp == PbMemProt.None); }
 
 			m_mp = PbMemProt.None;
 		}
@@ -393,7 +390,7 @@ namespace KeePassLib.Security
 				for(int i = 0; i < pb.Length; ++i)
 					h = (h << 3) + h + (int)pb[i];
 			}
-			MemUtil.ZeroByteArray(pb);
+			if(m_bProtected) MemUtil.ZeroByteArray(pb);
 
 			m_hash = h;
 			return h;
@@ -401,25 +398,36 @@ namespace KeePassLib.Security
 
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as ProtectedBinary);
+			return this.Equals(obj as ProtectedBinary, true);
 		}
 
 		public bool Equals(ProtectedBinary other)
 		{
-			if(other == null) return false; // No assert
+			return this.Equals(other, true);
+		}
 
-			if(m_bProtected != other.m_bProtected) return false;
+		public bool Equals(ProtectedBinary other, bool bCheckProtEqual)
+		{
+			if(other == null) return false; // No assert
+			if(object.ReferenceEquals(this, other)) return true; // Perf. opt.
+
+			if(bCheckProtEqual && (m_bProtected != other.m_bProtected))
+				return false;
+
 			if(m_uDataLen != other.m_uDataLen) return false;
 
-			byte[] pbL = ReadData();
-			byte[] pbR = other.ReadData();
-			bool bEq = MemUtil.ArraysEqual(pbL, pbR);
-			MemUtil.ZeroByteArray(pbL);
-			MemUtil.ZeroByteArray(pbR);
-
-#if DEBUG
-			if(bEq) { Debug.Assert(GetHashCode() == other.GetHashCode()); }
-#endif
+			byte[] pbL = ReadData(), pbR = null;
+			bool bEq;
+			try
+			{
+				pbR = other.ReadData();
+				bEq = MemUtil.ArraysEqual(pbL, pbR);
+			}
+			finally
+			{
+				if(m_bProtected) MemUtil.ZeroByteArray(pbL);
+				if(other.m_bProtected && (pbR != null)) MemUtil.ZeroByteArray(pbR);
+			}
 
 			return bEq;
 		}

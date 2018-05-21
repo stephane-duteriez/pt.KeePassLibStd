@@ -22,7 +22,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="1.59.2" />
+    <PackageReference Include="SkiaSharp" Version="1.60.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="4.4.0" />
   </ItemGroup>
 
 </Project>

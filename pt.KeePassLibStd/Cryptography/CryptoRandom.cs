@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -166,10 +166,10 @@ namespace KeePassLib.Cryptography
 			MemUtil.Write(ms, pb);
 
 #if !KeePassLibSD && !NETSTANDARD2_0
-            // In try-catch for systems without GUI;
-            // https://sourceforge.net/p/keepass/discussion/329221/thread/20335b73/
-            try
-            {
+			// In try-catch for systems without GUI;
+			// https://sourceforge.net/p/keepass/discussion/329221/thread/20335b73/
+			try
+			{
 				Point pt = Cursor.Position;
 				pb = MemUtil.Int32ToBytes(pt.X);
 				MemUtil.Write(ms, pb);
@@ -217,48 +217,43 @@ namespace KeePassLib.Cryptography
 			pb = DiagnosticsExt.GetProcessEntropy();
 			MemUtil.Write(ms, pb);
 #elif !KeePassLibSD && !NETSTANDARD2_0
-			Process p = null;
 			try
 			{
-				p = Process.GetCurrentProcess();
+				using(Process p = Process.GetCurrentProcess())
+				{
+					pb = MemUtil.Int64ToBytes(p.Handle.ToInt64());
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int32ToBytes(p.HandleCount);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int32ToBytes(p.Id);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.NonpagedSystemMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.PagedMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.PagedSystemMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.PeakPagedMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.PeakVirtualMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.PeakWorkingSet64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.PrivateMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.StartTime.ToBinary());
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.VirtualMemorySize64);
+					MemUtil.Write(ms, pb);
+					pb = MemUtil.Int64ToBytes(p.WorkingSet64);
+					MemUtil.Write(ms, pb);
 
-				pb = MemUtil.Int64ToBytes(p.Handle.ToInt64());
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int32ToBytes(p.HandleCount);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int32ToBytes(p.Id);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.NonpagedSystemMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.PagedMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.PagedSystemMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.PeakPagedMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.PeakVirtualMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.PeakWorkingSet64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.PrivateMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.StartTime.ToBinary());
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.VirtualMemorySize64);
-				MemUtil.Write(ms, pb);
-				pb = MemUtil.Int64ToBytes(p.WorkingSet64);
-				MemUtil.Write(ms, pb);
-
-				// Not supported in Mono 1.2.6:
-				// pb = MemUtil.UInt32ToBytes((uint)p.SessionId);
-				// MemUtil.Write(ms, pb);
+					// Not supported in Mono 1.2.6:
+					// pb = MemUtil.UInt32ToBytes((uint)p.SessionId);
+					// MemUtil.Write(ms, pb);
+				}
 			}
 			catch(Exception) { Debug.Assert(NativeLib.IsUnix()); }
-			finally
-			{
-				try { if(p != null) p.Dispose(); }
-				catch(Exception) { Debug.Assert(false); }
-			}
 #endif
 
 			try

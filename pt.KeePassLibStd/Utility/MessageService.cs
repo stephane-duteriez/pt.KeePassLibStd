@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2017 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,20 +37,20 @@ namespace KeePassLib.Utility
 		private string m_strTitle = string.Empty;
 		private string m_strText = string.Empty;
 #if !NETSTANDARD2_0
-        private MessageBoxButtons m_msgButtons = MessageBoxButtons.OK;
+		private MessageBoxButtons m_msgButtons = MessageBoxButtons.OK;
 		private MessageBoxIcon m_msgIcon = MessageBoxIcon.None;
 #endif
 		public string Title { get { return m_strTitle; } }
 		public string Text { get { return m_strText; } }
 #if !NETSTANDARD2_0
-        public MessageBoxButtons Buttons { get { return m_msgButtons; } }
+		public MessageBoxButtons Buttons { get { return m_msgButtons; } }
 		public MessageBoxIcon Icon { get { return m_msgIcon; } }
 #endif
 
 		public MessageServiceEventArgs() { }
 
 #if !NETSTANDARD2_0
-        public MessageServiceEventArgs(string strTitle, string strText,
+		public MessageServiceEventArgs(string strTitle, string strText,
 			MessageBoxButtons msgButtons, MessageBoxIcon msgIcon)
 		{
 			m_strTitle = (strTitle ?? string.Empty);
@@ -66,7 +66,7 @@ namespace KeePassLib.Utility
 		private static volatile uint m_uCurrentMessageCount = 0;
 
 #if !KeePassLibSD && !NETSTANDARD2_0
-        private const MessageBoxIcon m_mbiInfo = MessageBoxIcon.Information;
+		private const MessageBoxIcon m_mbiInfo = MessageBoxIcon.Information;
 		private const MessageBoxIcon m_mbiWarning = MessageBoxIcon.Warning;
 		private const MessageBoxIcon m_mbiFatal = MessageBoxIcon.Error;
 
@@ -136,7 +136,7 @@ namespace KeePassLib.Utility
 				{
 					if(bFullExceptions)
 						strAppend = StrUtil.FormatException(exObj);
-					else if((exObj.Message != null) && (exObj.Message.Length > 0))
+					else if(!string.IsNullOrEmpty(exObj.Message))
 						strAppend = exObj.Message;
 				}
 #if !KeePassLibSD
@@ -285,7 +285,7 @@ namespace KeePassLib.Utility
 		{
 			++m_uCurrentMessageCount;
 
-			string strTitle = PwDefs.ShortProductName + @" - " + KLRes.FatalError;
+			string strTitle = PwDefs.ShortProductName + " - " + KLRes.FatalError;
 			string strText = KLRes.FatalErrorText + MessageService.NewParagraph +
 				KLRes.ErrorInClipboard + MessageService.NewParagraph +
 				// Please send it to the KeePass developers.
@@ -410,7 +410,7 @@ namespace KeePassLib.Utility
 		}
 #endif // !KeePassUAP
 
-        internal static string GetLoadWarningMessage(string strFilePath,
+		internal static string GetLoadWarningMessage(string strFilePath,
 			Exception ex, bool bFullException)
 		{
 			string str = string.Empty;
