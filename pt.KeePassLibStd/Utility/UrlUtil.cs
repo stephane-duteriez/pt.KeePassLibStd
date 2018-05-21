@@ -253,8 +253,8 @@ namespace KeePassLib.Utility
 
 		public static bool UnhideFile(string strFile)
 		{
-#if KeePassLibSD
-			return false;
+#if KeePassLibSD || NETSTANDARD2_0
+            return false;
 #else
 			if(strFile == null) throw new ArgumentNullException("strFile");
 
@@ -273,8 +273,8 @@ namespace KeePassLib.Utility
 
 		public static bool HideFile(string strFile, bool bHide)
 		{
-#if KeePassLibSD
-			return false;
+#if KeePassLibSD || NETSTANDARD2_0
+            return false;
 #else
 			if(strFile == null) throw new ArgumentNullException("strFile");
 
@@ -314,11 +314,11 @@ namespace KeePassLib.Utility
 					return strTargetFile;
 			}
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			if(NativeLib.IsUnix())
 			{
 #endif
-				bool bBaseUnc = IsUncPath(strBaseFile);
+            bool bBaseUnc = IsUncPath(strBaseFile);
 				bool bTargetUnc = IsUncPath(strTargetFile);
 				if((!bBaseUnc && bTargetUnc) || (bBaseUnc && !bTargetUnc))
 					return strTargetFile;
@@ -345,7 +345,8 @@ namespace KeePassLib.Utility
 				}
 
 				return sbRel.ToString();
-#if (!KeePassLibSD && !KeePassUAP)
+            
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			}
 
 			try // Windows
@@ -364,9 +365,9 @@ namespace KeePassLib.Utility
 			catch(Exception) { Debug.Assert(false); }
 			return strTargetFile;
 #endif
-		}
+            }
 
-		public static string MakeAbsolutePath(string strBaseFile, string strTargetFile)
+            public static string MakeAbsolutePath(string strBaseFile, string strTargetFile)
 		{
 			if(strBaseFile == null) throw new ArgumentNullException("strBasePath");
 			if(strTargetFile == null) throw new ArgumentNullException("strTargetPath");

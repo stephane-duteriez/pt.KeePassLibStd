@@ -39,10 +39,10 @@ namespace KeePassLib.Native
 		internal const uint FILE_SUPPORTS_TRANSACTIONS = 0x00200000;
 		internal const int MAX_TRANSACTION_DESCRIPTION_LENGTH = 64;
 
-		// internal const uint TF_SFT_SHOWNORMAL = 0x00000001;
-		// internal const uint TF_SFT_HIDDEN = 0x00000008;
+        // internal const uint TF_SFT_SHOWNORMAL = 0x00000001;
+        // internal const uint TF_SFT_HIDDEN = 0x00000008;
 
-		/* [DllImport("KeePassNtv32.dll", EntryPoint = "TransformKey")]
+        /* [DllImport("KeePassNtv32.dll", EntryPoint = "TransformKey")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool TransformKey32(IntPtr pBuf256,
 			IntPtr pKey256, UInt64 uRounds);
@@ -78,7 +78,7 @@ namespace KeePassLib.Native
 			return TransformKeyTimed64(pBuf256, pKey256, ref puRounds, uSeconds);
 		} */
 
-#if !KeePassUAP
+#if !KeePassUAP && !NETSTANDARD2_0
 		[DllImport("KeePassLibC32.dll", EntryPoint = "TransformKey256")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool TransformKey32(IntPtr pBuf256,
@@ -111,7 +111,7 @@ namespace KeePassLib.Native
 		}
 #endif
 
-		/* [DllImport("KeePassLibC32.dll", EntryPoint = "TF_ShowLangBar")]
+        /* [DllImport("KeePassLibC32.dll", EntryPoint = "TF_ShowLangBar")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool TF_ShowLangBar32(UInt32 dwFlags);
 
@@ -125,7 +125,7 @@ namespace KeePassLib.Native
 			return TF_ShowLangBar64(dwFlags);
 		} */
 
-		[DllImport("KeePassLibC32.dll", EntryPoint = "ProtectProcessWithDacl")]
+        [DllImport("KeePassLibC32.dll", EntryPoint = "ProtectProcessWithDacl")]
 		private static extern void ProtectProcessWithDacl32();
 
 		[DllImport("KeePassLibC64.dll", EntryPoint = "ProtectProcessWithDacl")]
@@ -162,11 +162,13 @@ namespace KeePassLib.Native
 		internal static extern bool MoveFileEx(string lpExistingFileName,
 			string lpNewFileName, UInt32 dwFlags);
 
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 		[DllImport("KtmW32.dll", CharSet = CharSet.Unicode, ExactSpelling = true,
 			SetLastError = true)]
 		internal static extern IntPtr CreateTransaction(IntPtr lpTransactionAttributes,
 			IntPtr lpUOW, UInt32 dwCreateOptions, UInt32 dwIsolationLevel,
 			UInt32 dwIsolationFlags, UInt32 dwTimeout, string lpDescription);
+#endif
 
 		[DllImport("KtmW32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -179,7 +181,7 @@ namespace KeePassLib.Native
 			string lpNewFileName, IntPtr lpProgressRoutine, IntPtr lpData,
 			UInt32 dwFlags, IntPtr hTransaction);
 
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 		[DllImport("ShlWApi.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool PathRelativePathTo([Out] StringBuilder pszPath,
@@ -201,24 +203,24 @@ namespace KeePassLib.Native
 		}
 #endif
 
-		internal static bool SupportsStrCmpNaturally
+        internal static bool SupportsStrCmpNaturally
 		{
 			get
 			{
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 				if(!m_obSupportsLogicalCmp.HasValue)
 					TestNaturalComparisonsSupport();
 
 				return m_obSupportsLogicalCmp.Value;
 #else
-				return false;
+                return false;
 #endif
 			}
 		}
 
 		internal static int StrCmpNaturally(string x, string y)
 		{
-#if (!KeePassLibSD && !KeePassUAP)
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			if(!NativeMethods.SupportsStrCmpNaturally)
 			{
 				Debug.Assert(false);
@@ -227,7 +229,7 @@ namespace KeePassLib.Native
 
 			return StrCmpLogicalW(x, y);
 #else
-			Debug.Assert(false);
+            Debug.Assert(false);
 			return string.Compare(x, y, true);
 #endif
 		}
