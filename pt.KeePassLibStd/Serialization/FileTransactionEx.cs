@@ -293,6 +293,7 @@ namespace KeePassLib.Serialization
 
 		private static bool TxfIsSupported(char chDriveLetter)
 		{
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			if(chDriveLetter == '\0') return false;
 
 			try
@@ -314,7 +315,7 @@ namespace KeePassLib.Serialization
 				return ((uFlags & NativeMethods.FILE_SUPPORTS_TRANSACTIONS) != 0);
 			}
 			catch(Exception) { Debug.Assert(false); }
-
+#endif
 			return false;
 		}
 
@@ -347,6 +348,7 @@ namespace KeePassLib.Serialization
 
 		private bool TxfMove()
 		{
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			if(m_iocTxfMidFallback == null) return false;
 
 			if(TxfMoveWithTx()) return true;
@@ -363,11 +365,14 @@ namespace KeePassLib.Serialization
 			Debug.Assert(!File.Exists(m_iocTemp.Path));
 			Debug.Assert(!File.Exists(m_iocTxfMidFallback.Path));
 			return true;
-		}
+#else
+            return false;
+#endif
+        }
 
 		private bool TxfMoveWithTx()
 		{
-            #if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			IntPtr hTx = new IntPtr((int)NativeMethods.INVALID_HANDLE_VALUE);
 			Debug.Assert(hTx.ToInt64() == NativeMethods.INVALID_HANDLE_VALUE);
 			try

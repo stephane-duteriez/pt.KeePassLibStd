@@ -177,6 +177,7 @@ namespace KeePassLib.Cryptography
 
 		private static SymmetricAlgorithm CreateAesCsp()
 		{
+#if !KeePassUAP && !NETSTANDARD2_0
 			try
 			{
 				// On Windows, the CSP implementation is only minimally
@@ -195,8 +196,9 @@ namespace KeePassLib.Cryptography
 				return (Activator.CreateInstance(t) as SymmetricAlgorithm);
 			}
 			catch(Exception) { Debug.Assert(false); }
-
+#endif
 			return null;
+
 		}
 
 		public static byte[] ProtectData(byte[] pb, byte[] pbOptEntropy,

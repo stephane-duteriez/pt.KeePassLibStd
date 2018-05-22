@@ -109,7 +109,7 @@ namespace KeePassLib.Native
 				return TransformKeyBenchmark32(uTimeMs);
 			return TransformKeyBenchmark64(uTimeMs);
 		}
-#endif
+
 
         /* [DllImport("KeePassLibC32.dll", EntryPoint = "TF_ShowLangBar")]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -162,13 +162,12 @@ namespace KeePassLib.Native
 		internal static extern bool MoveFileEx(string lpExistingFileName,
 			string lpNewFileName, UInt32 dwFlags);
 
-#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
+
 		[DllImport("KtmW32.dll", CharSet = CharSet.Unicode, ExactSpelling = true,
 			SetLastError = true)]
 		internal static extern IntPtr CreateTransaction(IntPtr lpTransactionAttributes,
 			IntPtr lpUOW, UInt32 dwCreateOptions, UInt32 dwIsolationLevel,
 			UInt32 dwIsolationFlags, UInt32 dwTimeout, string lpDescription);
-#endif
 
 		[DllImport("KtmW32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
@@ -181,7 +180,6 @@ namespace KeePassLib.Native
 			string lpNewFileName, IntPtr lpProgressRoutine, IntPtr lpData,
 			UInt32 dwFlags, IntPtr hTransaction);
 
-#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 		[DllImport("ShlWApi.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool PathRelativePathTo([Out] StringBuilder pszPath,
