@@ -73,12 +73,15 @@ namespace KeePassLib.Cryptography.KeyDerivation
 		{
 			if(!NativeLib.IsUnix()) return false; // Independent of workaround state
 			if(!MonoWorkarounds.IsRequired(1468)) return false; // Can be turned off
-
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			// gcry_check_version initializes the library;
 			// throws when LibGCrypt is not available
 			NativeMethods.gcry_check_version(IntPtr.Zero);
 			return true;
-		}
+#else
+            return false;
+#endif
+        }
 
 		// =============================================================
 		// Multi-threaded implementation
@@ -278,6 +281,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 
 		private static bool GCryptInitCipher(ref IntPtr h, IntPtr pSeed32)
 		{
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			NativeMethods.gcry_cipher_open(ref h, NativeMethods.GCRY_CIPHER_AES256,
 				NativeMethods.GCRY_CIPHER_MODE_ECB, 0);
 			if(h == IntPtr.Zero) { Debug.Assert(false); return false; }
@@ -290,7 +294,10 @@ namespace KeePassLib.Cryptography.KeyDerivation
 			}
 
 			return true;
-		}
+#else
+            return false;
+#endif
+        }
 
 		private static bool GCryptBegin(byte[] pbData32, byte[] pbSeed32,
 			ref IntPtr h, ref IntPtr pData32, ref IntPtr pSeed32)
@@ -306,7 +313,9 @@ namespace KeePassLib.Cryptography.KeyDerivation
 
 		private static void GCryptEnd(IntPtr h, IntPtr pData32, IntPtr pSeed32)
 		{
-			NativeMethods.gcry_cipher_close(h);
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
+            NativeMethods.gcry_cipher_close(h);
+#endif
 
 			Marshal.WriteInt64(pData32, 0);
 			Marshal.WriteInt64(pData32, 8, 0);
@@ -329,13 +338,17 @@ namespace KeePassLib.Cryptography.KeyDerivation
 				IntPtr n32 = new IntPtr(32);
 				for(ulong i = 0; i < uRounds; ++i)
 				{
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 					if(NativeMethods.gcry_cipher_encrypt(h, pData32, n32,
 						IntPtr.Zero, IntPtr.Zero) != 0)
 					{
 						Debug.Assert(false);
 						return false;
 					}
-				}
+#else
+                    return false;
+#endif
+                }
 
 				Marshal.Copy(pData32, pbData32, 0, 32);
 				return true;
@@ -368,13 +381,17 @@ namespace KeePassLib.Cryptography.KeyDerivation
 				{
 					for(ulong j = 0; j < BenchStep; ++j)
 					{
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 						if(NativeMethods.gcry_cipher_encrypt(h, pData32, n32,
 							IntPtr.Zero, IntPtr.Zero) != 0)
 						{
 							Debug.Assert(false);
 							return false;
 						}
-					}
+#else
+                        return false;
+#endif
+                    }
 
 					r += BenchStep;
 					if(r < BenchStep) // Overflow check

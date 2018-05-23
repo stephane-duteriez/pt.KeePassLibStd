@@ -110,7 +110,7 @@ namespace KeePassLib.Native
 			}
 			catch(Exception) { Debug.Assert(false); }
 		}
-#endif
+
 
 		// =============================================================
 		// LibGCrypt 1.8.1
@@ -137,7 +137,7 @@ namespace KeePassLib.Native
 		[DllImport(LibGCrypt)]
 		internal static extern uint gcry_cipher_encrypt(IntPtr h, IntPtr pbOut,
 			IntPtr cbOut, IntPtr pbIn, IntPtr cbIn); // cb* are size_t
-
+#endif
 		/* internal static IntPtr Utf8ZFromString(string str)
 		{
 			byte[] pb = StrUtil.Utf8.GetBytes(str ?? string.Empty);
