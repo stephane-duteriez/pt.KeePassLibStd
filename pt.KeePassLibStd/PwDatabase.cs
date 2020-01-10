@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -134,7 +134,7 @@ namespace KeePassLib
 		}
 
 		/// <summary>
-		/// <c>IOConnection</c> of the currently opened database file.
+		/// <c>IOConnection</c> of the currently open database file.
 		/// Is never <c>null</c>.
 		/// </summary>
 		public IOConnectionInfo IOConnectionInfo
@@ -662,8 +662,8 @@ namespace KeePassLib
 		}
 
 		/// <summary>
-		/// Save the currently opened database. The file is written to the location
-		/// it has been opened from.
+		/// Save the currently open database. The file is written to the
+		/// location it has been opened from.
 		/// </summary>
 		/// <param name="slLogger">Logger that recieves status information.</param>
 		public void Save(IStatusLogger slLogger)
@@ -697,16 +697,16 @@ namespace KeePassLib
 		}
 
 		/// <summary>
-		/// Save the currently opened database to a different location. If
+		/// Save the currently open database to a different location. If
 		/// <paramref name="bIsPrimaryNow" /> is <c>true</c>, the specified
 		/// location is made the default location for future saves
 		/// using <c>SaveDatabase</c>.
 		/// </summary>
 		/// <param name="ioConnection">New location to serialize the database to.</param>
-		/// <param name="bIsPrimaryNow">If <c>true</c>, the new location is made the
-		/// standard location for the database. If <c>false</c>, a copy of the currently
-		/// opened database is saved to the specified location, but it isn't
-		/// made the default location (i.e. no lock files will be moved for
+		/// <param name="bIsPrimaryNow">If <c>true</c>, the new location is made
+		/// the standard location for the database. If <c>false</c>, a copy of the
+		/// currently open database is saved to the specified location, but it
+		/// isn't made the default location (i.e. no lock files will be moved for
 		/// example).</param>
 		/// <param name="slLogger">Logger that recieves status information.</param>
 		public void SaveAs(IOConnectionInfo ioConnection, bool bIsPrimaryNow,
@@ -738,8 +738,8 @@ namespace KeePassLib
 		}
 
 		/// <summary>
-		/// Closes the currently opened database. No confirmation message is shown
-		/// before closing. Unsaved changes will be lost.
+		/// Closes the currently open database. No confirmation message
+		/// is shown before closing. Unsaved changes will be lost.
 		/// </summary>
 		public void Close()
 		{
@@ -803,6 +803,12 @@ namespace KeePassLib
 					pgNew.Uuid = pg.Uuid;
 					pgNew.AssignProperties(pg, false, true);
 
+					if(!pgLocalContainer.CanAddGroup(pgNew))
+					{
+						Debug.Assert(false);
+						pgLocalContainer = m_pgRootGroup;
+						pgLocalContainer.CheckCanAddGroup(pgNew);
+					}
 					// pgLocalContainer.AddGroup(pgNew, true);
 					InsertObjectAtBestPos<PwGroup>(pgLocalContainer.Groups, pgNew, ppSrc);
 					pgNew.ParentGroup = pgLocalContainer;
@@ -902,18 +908,17 @@ namespace KeePassLib
 				MergeInLocationChanged(m_pgRootGroup, ppOrg, ppSrc);
 				ppOrg = null; // Pools are now invalid, because the location
 				ppSrc = null; // changed times have been merged in
-
-				// Delete *after* relocating, because relocating might
-				// empty some groups that are marked for deletion (and
-				// objects that weren't relocated yet might prevent the
-				// deletion)
-				Dictionary<PwUuid, PwDeletedObject> dOrgDel = CreateDeletedObjectsPool();
-				MergeInDeletionInfo(pdSource.m_vDeletedObjects, dOrgDel);
-				ApplyDeletions(m_pgRootGroup, dOrgDel);
-
-				// The list and the dictionary should be kept in sync
-				Debug.Assert(m_vDeletedObjects.UCount == (uint)dOrgDel.Count);
 			}
+
+			// Delete *after* relocating, because relocating might empty
+			// some groups that are marked for deletion (and objects
+			// that weren't relocated yet might prevent the deletion)
+			Dictionary<PwUuid, PwDeletedObject> dOrgDel = CreateDeletedObjectsPool();
+			if(mm == PwMergeMethod.Synchronize)
+				MergeInDeletionInfo(pdSource.m_vDeletedObjects, dOrgDel);
+			ApplyDeletions(m_pgRootGroup, dOrgDel);
+			// The list and the dictionary should be kept in sync
+			Debug.Assert(m_vDeletedObjects.UCount == (uint)dOrgDel.Count);
 
 			// Must be called *after* merging groups, because group UUIDs
 			// are required for recycle bin and entry template UUIDs
@@ -1089,8 +1094,8 @@ namespace KeePassLib
 
 					if(pgLocal.IsContainedIn(pg)) continue;
 
+					if(!pgLocal.CanAddGroup(pg)) { Debug.Assert(false); continue; }
 					pg.ParentGroup.Groups.Remove(pg);
-
 					// pgLocal.AddGroup(pg, true);
 					InsertObjectAtBestPos<PwGroup>(pgLocal.Groups, pg, ppSrc);
 					pg.ParentGroup = pgLocal;
@@ -1861,10 +1866,7 @@ namespace KeePassLib
 					using(Stream sOut = IOConnection.OpenWrite(iocBk))
 					{
 						MemUtil.CopyStream(sIn, sOut);
-						sOut.Close();
 					}
-
-					sIn.Close();
 				}
 			}
 
@@ -1954,16 +1956,22 @@ namespace KeePassLib
 			return uDeleted;
 		}
 
-		private static List<string> m_lStdFields = null;
+		private static List<string> g_lDupStdFields = null;
 		private static bool DupEntriesEqual(PwEntry a, PwEntry b)
 		{
-			if(m_lStdFields == null) m_lStdFields = PwDefs.GetStandardFields();
-
-			foreach(string strStdKey in m_lStdFields)
+			if(g_lDupStdFields == null)
 			{
-				string strA = a.Strings.ReadSafe(strStdKey);
-				string strB = b.Strings.ReadSafe(strStdKey);
-				if(!strA.Equals(strB)) return false;
+				g_lDupStdFields = PwDefs.GetStandardFields();
+				if(g_lDupStdFields.Remove(PwDefs.PasswordField))
+					g_lDupStdFields.Add(PwDefs.PasswordField); // Move to end (perf. opt.)
+				else { Debug.Assert(false); }
+			}
+
+			foreach(string strStdKey in g_lDupStdFields)
+			{
+				ProtectedString psA = a.Strings.GetSafe(strStdKey);
+				ProtectedString psB = b.Strings.GetSafe(strStdKey);
+				if(!psA.Equals(psB, false)) return false;
 			}
 
 			foreach(KeyValuePair<string, ProtectedString> kvpA in a.Strings)

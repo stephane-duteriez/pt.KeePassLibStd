@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -85,6 +85,7 @@ namespace KeePassLib.Cryptography
 			TestAes();
 			TestSalsa20(r);
 			TestChaCha20(r);
+			TestSha256(r);
 			TestBlake2b(r);
 			TestArgon2();
 			TestHmac();
@@ -95,6 +96,8 @@ namespace KeePassLib.Cryptography
 			TestHmacOtp();
 
 			TestProtectedObjects(r);
+			TestNativeLib();
+
 			TestMemUtil(r);
 			TestStrUtil();
 			TestUrlUtil();
@@ -124,43 +127,40 @@ namespace KeePassLib.Cryptography
 		private static void TestAes()
 		{
 			// Test vector (official ECB test vector #356)
+			byte[] pbKey = new byte[32];
 			byte[] pbIV = new byte[16];
-			byte[] pbTestKey = new byte[32];
-			byte[] pbTestData = new byte[16];
-			byte[] pbReferenceCT = new byte[16] {
+			byte[] pbData = new byte[16];
+			pbData[0] = 0x04;
+			byte[] pbRefCT = new byte[16] {
 				0x75, 0xD1, 0x1B, 0x0E, 0x3A, 0x68, 0xC4, 0x22,
 				0x3D, 0x88, 0xDB, 0xF0, 0x17, 0x97, 0x7D, 0xD7 };
-			int i;
-
-			for(i = 0; i < 16; ++i) pbIV[i] = 0;
-			for(i = 0; i < 32; ++i) pbTestKey[i] = 0;
-			for(i = 0; i < 16; ++i) pbTestData[i] = 0;
-			pbTestData[0] = 0x04;
 
 #if KeePassUAP
-			AesEngine r = new AesEngine();
-			r.Init(true, new KeyParameter(pbTestKey));
-			if(r.GetBlockSize() != pbTestData.Length)
+			AesEngine aes = new AesEngine();
+			aes.Init(true, new KeyParameter(pbKey));
+			if(aes.GetBlockSize() != pbData.Length)
 				throw new SecurityException("AES (BC)");
-			r.ProcessBlock(pbTestData, 0, pbTestData, 0);
+			aes.ProcessBlock(pbData, 0, pbData, 0);
+			aes.Reset();
 #else
-			SymmetricAlgorithm a = CryptoUtil.CreateAes();
-			if(a.BlockSize != 128) // AES block size
+			using(SymmetricAlgorithm a = CryptoUtil.CreateAes())
 			{
-				Debug.Assert(false);
-				a.BlockSize = 128;
+				if(a.BlockSize != 128) // AES block size
+				{
+					Debug.Assert(false);
+					a.BlockSize = 128;
+				}
+				a.KeySize = 256;
+				a.Mode = CipherMode.ECB;
+
+				using(ICryptoTransform t = a.CreateEncryptor(pbKey, pbIV))
+				{
+					t.TransformBlock(pbData, 0, 16, pbData, 0);
+				}
 			}
-
-			a.IV = pbIV;
-			a.KeySize = 256;
-			a.Key = pbTestKey;
-			a.Mode = CipherMode.ECB;
-			ICryptoTransform iCrypt = a.CreateEncryptor();
-
-			iCrypt.TransformBlock(pbTestData, 0, 16, pbTestData, 0);
 #endif
 
-			if(!MemUtil.ArraysEqual(pbTestData, pbReferenceCT))
+			if(!MemUtil.ArraysEqual(pbData, pbRefCT))
 				throw new SecurityException("AES");
 		}
 
@@ -434,6 +434,37 @@ namespace KeePassLib.Cryptography
 #endif
 		}
 
+		private static void TestSha256(Random r)
+		{
+#if DEBUG
+			byte[] pbData = new byte[517];
+			r.NextBytes(pbData);
+
+			byte[] pbH1;
+			using(SHA256Managed h1 = new SHA256Managed())
+			{
+				int i = 0;
+				while(i != pbData.Length)
+				{
+					int cb = r.Next(pbData.Length - i) + 1;
+					h1.TransformBlock(pbData, i, cb, pbData, i);
+					i += cb;
+				}
+				h1.TransformFinalBlock(MemUtil.EmptyByteArray, 0, 0);
+				pbH1 = h1.Hash;
+			}
+
+			byte[] pbH2;
+			using(SHA256Managed h2 = new SHA256Managed())
+			{
+				pbH2 = h2.ComputeHash(pbData);
+			}
+
+			if(!MemUtil.ArraysEqual(pbH1, pbH2))
+				throw new SecurityException("SHA-256");
+#endif
+		}
+
 		private static void TestBlake2b(Random r)
 		{
 #if DEBUG
@@ -498,7 +529,7 @@ namespace KeePassLib.Cryptography
 			int p = 0;
 			while(p < pbData.Length)
 			{
-				int cb = r.Next(1, pbData.Length - p + 1);
+				int cb = r.Next(pbData.Length - p) + 1;
 				h.TransformBlock(pbData, p, cb, pbData, p);
 				p += cb;
 			}
@@ -771,94 +802,6 @@ namespace KeePassLib.Cryptography
 #endif
 		}
 
-		private static void TestMemUtil(Random r)
-		{
-#if DEBUG
-			byte[] pb = CryptoRandom.Instance.GetRandomBytes((uint)r.Next(
-				0, 0x2FFFF));
-
-			byte[] pbCompressed = MemUtil.Compress(pb);
-			if(!MemUtil.ArraysEqual(MemUtil.Decompress(pbCompressed), pb))
-				throw new InvalidOperationException("GZip");
-
-			Encoding enc = StrUtil.Utf8;
-			pb = enc.GetBytes("012345678901234567890a");
-			byte[] pbN = enc.GetBytes("9012");
-			if(MemUtil.IndexOf<byte>(pb, pbN) != 9)
-				throw new InvalidOperationException("MemUtil-1");
-			pbN = enc.GetBytes("01234567890123");
-			if(MemUtil.IndexOf<byte>(pb, pbN) != 0)
-				throw new InvalidOperationException("MemUtil-2");
-			pbN = enc.GetBytes("a");
-			if(MemUtil.IndexOf<byte>(pb, pbN) != 21)
-				throw new InvalidOperationException("MemUtil-3");
-			pbN = enc.GetBytes("0a");
-			if(MemUtil.IndexOf<byte>(pb, pbN) != 20)
-				throw new InvalidOperationException("MemUtil-4");
-			pbN = enc.GetBytes("1");
-			if(MemUtil.IndexOf<byte>(pb, pbN) != 1)
-				throw new InvalidOperationException("MemUtil-5");
-			pbN = enc.GetBytes("b");
-			if(MemUtil.IndexOf<byte>(pb, pbN) >= 0)
-				throw new InvalidOperationException("MemUtil-6");
-			pbN = enc.GetBytes("012b");
-			if(MemUtil.IndexOf<byte>(pb, pbN) >= 0)
-				throw new InvalidOperationException("MemUtil-7");
-
-			byte[] pbRes = MemUtil.ParseBase32("MY======");
-			byte[] pbExp = Encoding.ASCII.GetBytes("f");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-1");
-
-			pbRes = MemUtil.ParseBase32("MZXQ====");
-			pbExp = Encoding.ASCII.GetBytes("fo");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-2");
-
-			pbRes = MemUtil.ParseBase32("MZXW6===");
-			pbExp = Encoding.ASCII.GetBytes("foo");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-3");
-
-			pbRes = MemUtil.ParseBase32("MZXW6YQ=");
-			pbExp = Encoding.ASCII.GetBytes("foob");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-4");
-
-			pbRes = MemUtil.ParseBase32("MZXW6YTB");
-			pbExp = Encoding.ASCII.GetBytes("fooba");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-5");
-
-			pbRes = MemUtil.ParseBase32("MZXW6YTBOI======");
-			pbExp = Encoding.ASCII.GetBytes("foobar");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-6");
-
-			pbRes = MemUtil.ParseBase32("JNSXSIDQOJXXM2LEMVZCAYTBONSWIIDPNYQG63TFFV2GS3LFEBYGC43TO5XXEZDTFY======");
-			pbExp = Encoding.ASCII.GetBytes("Key provider based on one-time passwords.");
-			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-7");
-
-			int i = 0 - 0x10203040;
-			pbRes = MemUtil.Int32ToBytes(i);
-			if(MemUtil.ByteArrayToHexString(pbRes) != "C0CFDFEF")
-				throw new Exception("MemUtil-8"); // Must be little-endian
-			if(MemUtil.BytesToUInt32(pbRes) != (uint)i)
-				throw new Exception("MemUtil-9");
-			if(MemUtil.BytesToInt32(pbRes) != i)
-				throw new Exception("MemUtil-10");
-
-			ArrayHelperEx<char> ah = MemUtil.ArrayHelperExOfChar;
-			for(int j = 0; j < 30; ++j)
-			{
-				string strA = r.Next(30).ToString();
-				string strB = r.Next(30).ToString();
-				char[] vA = strA.ToCharArray();
-				char[] vB = strB.ToCharArray();
-
-				if(ah.Equals(vA, vB) != string.Equals(strA, strB))
-					throw new Exception("MemUtil-11");
-				if((vA.Length == vB.Length) && (Math.Sign(ah.Compare(vA, vB)) !=
-					Math.Sign(string.CompareOrdinal(strA, strB))))
-					throw new Exception("MemUtil-12");
-			}
-#endif
-		}
-
 		private static void TestHmacOtp()
 		{
 #if (DEBUG && !KeePassLibSD)
@@ -971,6 +914,119 @@ namespace KeePassLib.Cryptography
 				throw new SecurityException("ProtectedString-15");
 			if(!ps.Equals(new ProtectedString(false, "ABCDEFGHI"), false))
 				throw new SecurityException("ProtectedString-16");
+#endif
+		}
+
+		private static void TestNativeLib()
+		{
+#if DEBUG
+			if(NativeLib.IsUnix())
+			{
+				if(NativeLib.EncodeDataToArgs("A\"B C\\D") !=
+					"A\\\"B C\\\\D")
+					throw new Exception("NativeLib-Args-U");
+			}
+			else // Windows
+			{
+				if(NativeLib.EncodeDataToArgs("A\"B C\\D \\\\ \\\" \\\\\" \\\\\\\" \\\\\\") !=
+					"A\\\"B C\\D \\\\ \\\\\\\" \\\\\\\\\\\" \\\\\\\\\\\\\\\" \\\\\\")
+					throw new Exception("NativeLib-Args-W");
+			}
+
+			string strOrg = "A\\B\\\\C\\\\\\D E\"F\"\"G\"\"\"H I\'J\'\'K\'\'\'L " +
+				"M\\\"N\\\\\"O\\\\\\\"P\\\\\\\\\\\"Q R\\\'S T\\\\\'U \\\\\\";
+			string strArgs = NativeLib.EncodeDataToArgs(strOrg);
+			string strDec = NativeLib.DecodeArgsToData(strArgs);
+			if(strDec != strOrg)
+				throw new Exception("NativeLib-Args-EncDec");
+#endif
+		}
+
+		private static void TestMemUtil(Random r)
+		{
+#if DEBUG
+			byte[] pb = CryptoRandom.Instance.GetRandomBytes((uint)r.Next(
+				0, 0x2FFFF));
+
+			byte[] pbCompressed = MemUtil.Compress(pb);
+			if(!MemUtil.ArraysEqual(MemUtil.Decompress(pbCompressed), pb))
+				throw new InvalidOperationException("GZip");
+
+			Encoding enc = StrUtil.Utf8;
+			pb = enc.GetBytes("012345678901234567890a");
+			byte[] pbN = enc.GetBytes("9012");
+			if(MemUtil.IndexOf<byte>(pb, pbN) != 9)
+				throw new InvalidOperationException("MemUtil-1");
+			pbN = enc.GetBytes("01234567890123");
+			if(MemUtil.IndexOf<byte>(pb, pbN) != 0)
+				throw new InvalidOperationException("MemUtil-2");
+			pbN = enc.GetBytes("a");
+			if(MemUtil.IndexOf<byte>(pb, pbN) != 21)
+				throw new InvalidOperationException("MemUtil-3");
+			pbN = enc.GetBytes("0a");
+			if(MemUtil.IndexOf<byte>(pb, pbN) != 20)
+				throw new InvalidOperationException("MemUtil-4");
+			pbN = enc.GetBytes("1");
+			if(MemUtil.IndexOf<byte>(pb, pbN) != 1)
+				throw new InvalidOperationException("MemUtil-5");
+			pbN = enc.GetBytes("b");
+			if(MemUtil.IndexOf<byte>(pb, pbN) >= 0)
+				throw new InvalidOperationException("MemUtil-6");
+			pbN = enc.GetBytes("012b");
+			if(MemUtil.IndexOf<byte>(pb, pbN) >= 0)
+				throw new InvalidOperationException("MemUtil-7");
+
+			byte[] pbRes = MemUtil.ParseBase32("MY======");
+			byte[] pbExp = Encoding.ASCII.GetBytes("f");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-1");
+
+			pbRes = MemUtil.ParseBase32("MZXQ====");
+			pbExp = Encoding.ASCII.GetBytes("fo");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-2");
+
+			pbRes = MemUtil.ParseBase32("MZXW6===");
+			pbExp = Encoding.ASCII.GetBytes("foo");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-3");
+
+			pbRes = MemUtil.ParseBase32("MZXW6YQ=");
+			pbExp = Encoding.ASCII.GetBytes("foob");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-4");
+
+			pbRes = MemUtil.ParseBase32("MZXW6YTB");
+			pbExp = Encoding.ASCII.GetBytes("fooba");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-5");
+
+			pbRes = MemUtil.ParseBase32("MZXW6YTBOI======");
+			pbExp = Encoding.ASCII.GetBytes("foobar");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-6");
+
+			pbRes = MemUtil.ParseBase32("JNSXSIDQOJXXM2LEMVZCAYTBONSWIIDPNYQG63TFFV2GS3LFEBYGC43TO5XXEZDTFY======");
+			pbExp = Encoding.ASCII.GetBytes("Key provider based on one-time passwords.");
+			if(!MemUtil.ArraysEqual(pbRes, pbExp)) throw new Exception("Base32-7");
+
+			int i = 0 - 0x10203040;
+			pbRes = MemUtil.Int32ToBytes(i);
+			if(MemUtil.ByteArrayToHexString(pbRes) != "C0CFDFEF")
+				throw new Exception("MemUtil-8"); // Must be little-endian
+			if(MemUtil.BytesToUInt32(pbRes) != (uint)i)
+				throw new Exception("MemUtil-9");
+			if(MemUtil.BytesToInt32(pbRes) != i)
+				throw new Exception("MemUtil-10");
+
+			ArrayHelperEx<char> ah = MemUtil.ArrayHelperExOfChar;
+			for(int j = 0; j < 30; ++j)
+			{
+				string strA = r.Next(30).ToString();
+				string strB = r.Next(30).ToString();
+				char[] vA = strA.ToCharArray();
+				char[] vB = strB.ToCharArray();
+
+				if(ah.Equals(vA, vB) != string.Equals(strA, strB))
+					throw new Exception("MemUtil-11");
+				if((vA.Length == vB.Length) && (Math.Sign(ah.Compare(vA, vB)) !=
+					Math.Sign(string.CompareOrdinal(strA, strB))))
+					throw new Exception("MemUtil-12");
+			}
 #endif
 		}
 
@@ -1103,6 +1159,21 @@ namespace KeePassLib.Cryptography
 			Debug.Assert(Uri.UriSchemeHttps.Equals("https", StrUtil.CaseIgnoreCmp));
 #endif
 
+			string str = UrlUtil.FilterFileName(" A \"*:?/\\|<>B.txt . ");
+			if(!str.StartsWith(" A ")) throw new Exception("UrlUtil-FFN1");
+			if(!str.EndsWith("B.txt")) throw new Exception("UrlUtil-FFN2");
+			if(str.IndexOfAny(new char[] { '\"', '*', ':', '?', '/', '\\', '|', '<', '>' }) >= 0)
+				throw new Exception("UrlUtil-FFN3");
+
+			if(UrlUtil.GetScheme("cmdG://\"Test.txt\"") != "cmdG")
+				throw new Exception("UrlUtil-GS");
+			if(UrlUtil.RemoveScheme("cmdX://\"T\":A") != "\"T\":A")
+				throw new Exception("UrlUtil-RS1");
+			if(UrlUtil.RemoveScheme("cmdY:/\"T\":A") != "/\"T\":A")
+				throw new Exception("UrlUtil-RS2");
+			if(UrlUtil.RemoveScheme("cmdZ:\"T\":A") != "\"T\":A")
+				throw new Exception("UrlUtil-RS3");
+
 			if(UrlUtil.GetHost(@"scheme://domain:port/path?query_string#fragment_id") !=
 				"domain")
 				throw new InvalidOperationException("UrlUtil-H1");
@@ -1126,7 +1197,7 @@ namespace KeePassLib.Cryptography
 			string strDoc = "\\\\HOMESERVER\\Documents\\KeePass\\NewDatabase.kdbx";
 			string strRel = "..\\..\\Documents\\KeePass\\NewDatabase.kdbx";
 
-			string str = UrlUtil.MakeRelativePath(strBase, strDoc);
+			str = UrlUtil.MakeRelativePath(strBase, strDoc);
 			if(!str.Equals(strRel)) throw new InvalidOperationException("UrlUtil-R1");
 
 			str = UrlUtil.MakeAbsolutePath(strBase, strRel);

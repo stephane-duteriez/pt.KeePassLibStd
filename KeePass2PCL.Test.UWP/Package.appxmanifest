@@ -5,11 +5,11 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   IgnorableNamespaces="uap mp">
 
-  <Identity Name="04c08526-0134-4915-a3bc-fa1d4ed1ea42"
+  <Identity Name="5bc23762-1a7f-4177-b5fe-50a5e71710f9"
             Publisher="CN=anpan"
             Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="04c08526-0134-4915-a3bc-fa1d4ed1ea42" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="5bc23762-1a7f-4177-b5fe-50a5e71710f9" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>KeePass2PCL.Test.UWP</DisplayName>
@@ -41,5 +41,6 @@
   </Applications>
   <Capabilities>
     <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
   </Capabilities>
 </Package>

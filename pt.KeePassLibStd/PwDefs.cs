@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -37,13 +37,13 @@ namespace KeePassLib
 		/// <summary>
 		/// The product name.
 		/// </summary>
-		public const string ProductName = "KeePass Password Safe";
+		public static readonly string ProductName = "KeePass Password Safe";
 
 		/// <summary>
 		/// A short, simple string representing the product name. The string
 		/// should contain no spaces, directory separator characters, etc.
 		/// </summary>
-		public const string ShortProductName = "KeePass";
+		public static readonly string ShortProductName = "KeePass";
 
 		internal const string UnixName = "keepass2";
 		internal const string ResClass = "KeePass2"; // With initial capital
@@ -55,52 +55,52 @@ namespace KeePassLib
 		/// e.g. 2.19 = 0x02130000.
 		/// It is highly recommended to use <c>FileVersion64</c> instead.
 		/// </summary>
-		public const uint Version32 = 0x02270100;
+		public static readonly uint Version32 = 0x022B0000;
 
 		/// <summary>
 		/// Version, encoded as 64-bit unsigned integer
 		/// (component-wise, 16 bits per component).
 		/// </summary>
-		public const ulong FileVersion64 = 0x0002002700010000UL;
+		public static readonly ulong FileVersion64 = 0x0002002B00000000UL;
 
 		/// <summary>
 		/// Version, encoded as string.
 		/// </summary>
-		public const string VersionString = "2.39.1";
+		public static readonly string VersionString = "2.43";
 
-		public const string Copyright = @"Copyright © 2003-2018 Dominik Reichl";
+		public static readonly string Copyright = @"Copyright © 2003-2019 Dominik Reichl";
 
 		/// <summary>
 		/// Product website URL. Terminated by a forward slash.
 		/// </summary>
-		public const string HomepageUrl = "https://keepass.info/";
+		public static readonly string HomepageUrl = "https://keepass.info/";
 
 		/// <summary>
 		/// URL to the online translations page.
 		/// </summary>
-		public const string TranslationsUrl = "https://keepass.info/translations.html";
+		public static readonly string TranslationsUrl = "https://keepass.info/translations.html";
 
 		/// <summary>
 		/// URL to the online plugins page.
 		/// </summary>
-		public const string PluginsUrl = "https://keepass.info/plugins.html";
+		public static readonly string PluginsUrl = "https://keepass.info/plugins.html";
 
 		/// <summary>
 		/// Product donations URL.
 		/// </summary>
-		public const string DonationsUrl = "https://keepass.info/donate.html";
+		public static readonly string DonationsUrl = "https://keepass.info/donate.html";
 
 		/// <summary>
 		/// URL to the root path of the online KeePass help. Terminated by
 		/// a forward slash.
 		/// </summary>
-		public const string HelpUrl = "https://keepass.info/help/";
+		public static readonly string HelpUrl = "https://keepass.info/help/";
 
 		/// <summary>
 		/// URL to a TXT file (eventually compressed) that contains information
 		/// about the latest KeePass version available on the website.
 		/// </summary>
-		public const string VersionUrl = "https://www.dominik-reichl.de/update/version2x.txt.gz";
+		public static readonly string VersionUrl = "https://www.dominik-reichl.de/update/version2x.txt.gz";
 
 		/// <summary>
 		/// A <c>DateTime</c> object that represents the time when the assembly
@@ -112,69 +112,80 @@ namespace KeePassLib
 		/// Default number of master key encryption/transformation rounds
 		/// (making dictionary attacks harder).
 		/// </summary>
-		public const ulong DefaultKeyEncryptionRounds = 60000;
+		public static readonly ulong DefaultKeyEncryptionRounds = 60000;
 
 		/// <summary>
-		/// Default identifier string for the title field. Should not contain
-		/// spaces, tabs or other whitespace.
+		/// Default identifier string for the title field.
+		/// Should not contain spaces, tabs or other whitespace.
 		/// </summary>
 		public const string TitleField = "Title";
+		// Const instead of static readonly for backward compatibility with plugins
 
 		/// <summary>
-		/// Default identifier string for the user name field. Should not contain
-		/// spaces, tabs or other whitespace.
+		/// Default identifier string for the user name field.
+		/// Should not contain spaces, tabs or other whitespace.
 		/// </summary>
 		public const string UserNameField = "UserName";
+		// Const instead of static readonly for backward compatibility with plugins
 
 		/// <summary>
-		/// Default identifier string for the password field. Should not contain
-		/// spaces, tabs or other whitespace.
+		/// Default identifier string for the password field.
+		/// Should not contain spaces, tabs or other whitespace.
 		/// </summary>
 		public const string PasswordField = "Password";
+		// Const instead of static readonly for backward compatibility with plugins
 
 		/// <summary>
-		/// Default identifier string for the URL field. Should not contain
-		/// spaces, tabs or other whitespace.
+		/// Default identifier string for the URL field.
+		/// Should not contain spaces, tabs or other whitespace.
 		/// </summary>
 		public const string UrlField = "URL";
+		// Const instead of static readonly for backward compatibility with plugins
 
 		/// <summary>
-		/// Default identifier string for the notes field. Should not contain
-		/// spaces, tabs or other whitespace.
+		/// Default identifier string for the notes field.
+		/// Should not contain spaces, tabs or other whitespace.
 		/// </summary>
 		public const string NotesField = "Notes";
+		// Const instead of static readonly for backward compatibility with plugins
 
 		/// <summary>
 		/// Default identifier string for the field which will contain TAN indices.
 		/// </summary>
-		public const string TanIndexField = UserNameField;
+		public static readonly string TanIndexField = UserNameField;
 
 		/// <summary>
 		/// Default title of an entry that is really a TAN entry.
 		/// </summary>
-		public const string TanTitle = @"<TAN>";
+		public static readonly string TanTitle = @"<TAN>";
 
 		/// <summary>
 		/// Prefix of a custom auto-type string field.
 		/// </summary>
-		public const string AutoTypeStringPrefix = "S:";
+		public static readonly string AutoTypeStringPrefix = "S:";
 
 		/// <summary>
 		/// Default string representing a hidden password.
 		/// </summary>
-		public const string HiddenPassword = "********";
+		public static readonly string HiddenPassword = "********";
 
 		/// <summary>
 		/// Default auto-type keystroke sequence. If no custom sequence is
 		/// specified, this sequence is used.
 		/// </summary>
-		public const string DefaultAutoTypeSequence = @"{USERNAME}{TAB}{PASSWORD}{ENTER}";
+		public static readonly string DefaultAutoTypeSequence = @"{USERNAME}{TAB}{PASSWORD}{ENTER}";
 
 		/// <summary>
 		/// Default auto-type keystroke sequence for TAN entries. If no custom
 		/// sequence is specified, this sequence is used.
 		/// </summary>
-		public const string DefaultAutoTypeSequenceTan = @"{PASSWORD}";
+		public static readonly string DefaultAutoTypeSequenceTan = @"{PASSWORD}";
+
+		/// <summary>
+		/// Maximum time (in milliseconds) after which the user interface
+		/// should be updated.
+		/// </summary>
+		internal const int UIUpdateDelay = 50;
 
 		/// <summary>
 		/// Check if a name is a standard field name.
@@ -209,13 +220,11 @@ namespace KeePassLib
 		}
 
 		/// <summary>
-		/// Check if an entry is a TAN.
+		/// Check whether an entry is a TAN entry.
 		/// </summary>
-		/// <param name="pe">Password entry.</param>
-		/// <returns>Returns <c>true</c> if the entry is a TAN.</returns>
 		public static bool IsTanEntry(PwEntry pe)
 		{
-			Debug.Assert(pe != null); if(pe == null) return false;
+			if(pe == null) { Debug.Assert(false); return false; }
 
 			return (pe.Strings.ReadSafe(PwDefs.TitleField) == TanTitle);
 		}
@@ -225,8 +234,32 @@ namespace KeePassLib
 			if(strFileVersion == null) { Debug.Assert(false); return string.Empty; }
 
 			if(strFileVersion == "2.39") return "2.39 / 2.39.1";
+			if(strFileVersion == "2.42") return "2.42 / 2.42.1";
 
 			return strFileVersion;
+		}
+
+		internal static PwIcon GroupIconToEntryIcon(PwIcon i)
+		{
+			PwIcon r = i; // Inherit by default
+
+			switch(i)
+			{
+				case PwIcon.Folder:
+				case PwIcon.FolderOpen:
+				case PwIcon.FolderPackage:
+					Debug.Assert((new PwEntry(false, false)).IconId == PwIcon.Key);
+					r = PwIcon.Key;
+					break;
+
+				case PwIcon.EMailBox:
+					r = PwIcon.EMail;
+					break;
+
+				default: break;
+			}
+
+			return r;
 		}
 	}
 
@@ -328,6 +361,14 @@ namespace KeePassLib
 			set { m_bSearchInUuids = value; }
 		}
 
+		private bool m_bSearchInGroupPaths = false;
+		[DefaultValue(false)]
+		public bool SearchInGroupPaths
+		{
+			get { return m_bSearchInGroupPaths; }
+			set { m_bSearchInGroupPaths = value; }
+		}
+
 		private bool m_bSearchInGroupNames = false;
 		[DefaultValue(false)]
 		public bool SearchInGroupNames
@@ -408,6 +449,7 @@ namespace KeePassLib
 				Debug.Assert(!sp.m_bSearchInStringNames);
 				sp.m_bSearchInTags = false;
 				Debug.Assert(!sp.m_bSearchInUuids);
+				Debug.Assert(!sp.m_bSearchInGroupPaths);
 				Debug.Assert(!sp.m_bSearchInGroupNames);
 				// Debug.Assert(sp.m_scType == StringComparison.InvariantCultureIgnoreCase);
 				Debug.Assert(!sp.m_bExcludeExpired);

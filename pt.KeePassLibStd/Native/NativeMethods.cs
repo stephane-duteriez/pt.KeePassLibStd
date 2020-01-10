@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,10 +39,13 @@ namespace KeePassLib.Native
 		internal const uint FILE_SUPPORTS_TRANSACTIONS = 0x00200000;
 		internal const int MAX_TRANSACTION_DESCRIPTION_LENGTH = 64;
 
-        // internal const uint TF_SFT_SHOWNORMAL = 0x00000001;
-        // internal const uint TF_SFT_HIDDEN = 0x00000008;
+		internal static readonly Guid FOLDERID_SkyDrive = new Guid(
+			"A52BBA46-E9E1-435F-B3D9-28DAA648C0F6");
 
-        /* [DllImport("KeePassNtv32.dll", EntryPoint = "TransformKey")]
+		// internal const uint TF_SFT_SHOWNORMAL = 0x00000001;
+		// internal const uint TF_SFT_HIDDEN = 0x00000008;
+
+		/* [DllImport("KeePassNtv32.dll", EntryPoint = "TransformKey")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool TransformKey32(IntPtr pBuf256,
 			IntPtr pKey256, UInt64 uRounds);
@@ -109,9 +112,9 @@ namespace KeePassLib.Native
 				return TransformKeyBenchmark32(uTimeMs);
 			return TransformKeyBenchmark64(uTimeMs);
 		}
+#endif
 
-
-        /* [DllImport("KeePassLibC32.dll", EntryPoint = "TF_ShowLangBar")]
+		/* [DllImport("KeePassLibC32.dll", EntryPoint = "TF_ShowLangBar")]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		private static extern bool TF_ShowLangBar32(UInt32 dwFlags);
 
@@ -125,7 +128,7 @@ namespace KeePassLib.Native
 			return TF_ShowLangBar64(dwFlags);
 		} */
 
-        [DllImport("KeePassLibC32.dll", EntryPoint = "ProtectProcessWithDacl")]
+		[DllImport("KeePassLibC32.dll", EntryPoint = "ProtectProcessWithDacl")]
 		private static extern void ProtectProcessWithDacl32();
 
 		[DllImport("KeePassLibC64.dll", EntryPoint = "ProtectProcessWithDacl")]
@@ -162,7 +165,6 @@ namespace KeePassLib.Native
 		internal static extern bool MoveFileEx(string lpExistingFileName,
 			string lpNewFileName, UInt32 dwFlags);
 
-
 		[DllImport("KtmW32.dll", CharSet = CharSet.Unicode, ExactSpelling = true,
 			SetLastError = true)]
 		internal static extern IntPtr CreateTransaction(IntPtr lpTransactionAttributes,
@@ -180,6 +182,11 @@ namespace KeePassLib.Native
 			string lpNewFileName, IntPtr lpProgressRoutine, IntPtr lpData,
 			UInt32 dwFlags, IntPtr hTransaction);
 
+		[DllImport("Shell32.dll")]
+		private static extern int SHGetKnownFolderPath(ref Guid rfid, uint dwFlags,
+			IntPtr hToken, out IntPtr ppszPath);
+
+#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 		[DllImport("ShlWApi.dll", CharSet = CharSet.Auto)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		internal static extern bool PathRelativePathTo([Out] StringBuilder pszPath,
@@ -201,7 +208,7 @@ namespace KeePassLib.Native
 		}
 #endif
 
-        internal static bool SupportsStrCmpNaturally
+		internal static bool SupportsStrCmpNaturally
 		{
 			get
 			{
@@ -211,7 +218,7 @@ namespace KeePassLib.Native
 
 				return m_obSupportsLogicalCmp.Value;
 #else
-                return false;
+				return false;
 #endif
 			}
 		}
@@ -227,7 +234,7 @@ namespace KeePassLib.Native
 
 			return StrCmpLogicalW(x, y);
 #else
-            Debug.Assert(false);
+			Debug.Assert(false);
 			return string.Compare(x, y, true);
 #endif
 		}
@@ -255,6 +262,30 @@ namespace KeePassLib.Native
 
 			return strRtDir;
 #endif
+		}
+
+		internal static string GetKnownFolderPath(Guid g)
+		{
+			if(Marshal.SystemDefaultCharSize != 2) { Debug.Assert(false); return string.Empty; }
+
+			IntPtr pszPath = IntPtr.Zero;
+			try
+			{
+				if(SHGetKnownFolderPath(ref g, 0, IntPtr.Zero, out pszPath) == 0)
+				{
+					if(pszPath != IntPtr.Zero)
+						return Marshal.PtrToStringUni(pszPath);
+					else { Debug.Assert(false); }
+				}
+			}
+			catch(Exception) { Debug.Assert(false); }
+			finally
+			{
+				try { if(pszPath != IntPtr.Zero) Marshal.FreeCoTaskMem(pszPath); }
+				catch(Exception) { Debug.Assert(false); }
+			}
+
+			return string.Empty;
 		}
 	}
 }

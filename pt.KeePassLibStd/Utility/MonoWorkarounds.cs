@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -58,6 +58,9 @@ namespace KeePassLib.Utility
 			return g_bReq.Value;
 		}
 
+		// 106:
+		//   Mono throws exceptions when no X server is running.
+		//   https://sourceforge.net/p/keepass/patches/106/
 		// 1219:
 		//   Mono prepends byte order mark (BOM) to StdIn.
 		//   https://sourceforge.net/p/keepass/bugs/1219/
@@ -104,12 +107,15 @@ namespace KeePassLib.Utility
 		// 1690:
 		//   Removing items from a list view doesn't work properly.
 		//   https://sourceforge.net/p/keepass/bugs/1690/
+		// 1710:
+		//   Mono doesn't always raise the FormClosed event properly.
+		//   https://sourceforge.net/p/keepass/bugs/1710/
 		// 1716:
 		//   'Always on Top' doesn't work properly on the Cinnamon desktop.
 		//   https://sourceforge.net/p/keepass/bugs/1716/
-		// 2139:
-		//   Shortcut keys are ignored.
-		//   https://sourceforge.net/p/keepass/feature-requests/2139/
+		// 1760:
+		//   Input focus is not restored when activating a form.
+		//   https://sourceforge.net/p/keepass/bugs/1760/
 		// 2140:
 		//   Explicit control focusing is ignored.
 		//   https://sourceforge.net/p/keepass/feature-requests/2140/
@@ -117,6 +123,9 @@ namespace KeePassLib.Utility
 		//   Text in input field is incomplete.
 		//   https://bugzilla.xamarin.com/show_bug.cgi?id=5795
 		//   https://sourceforge.net/p/keepass/discussion/329220/thread/d23dc88b/
+		// 9604:
+		//   Trying to resolve a non-existing metadata token crashes Mono.
+		//   https://github.com/mono/mono/issues/9604
 		// 10163:
 		//   WebRequest GetResponse call missing, breaks WebDAV due to no PUT.
 		//   https://bugzilla.xamarin.com/show_bug.cgi?id=10163
@@ -132,6 +141,9 @@ namespace KeePassLib.Utility
 		// 100001:
 		//   Control locations/sizes are invalid/unexpected.
 		//   [NoRef]
+		// 190417:
+		//   Mono's Process.Start method replaces '\\' by '/'.
+		//   https://github.com/mono/mono/blob/master/mono/metadata/w32process-unix.c
 		// 373134:
 		//   Control.InvokeRequired doesn't always return the correct value.
 		//   https://bugzilla.novell.com/show_bug.cgi?id=373134
@@ -563,7 +575,7 @@ namespace KeePassLib.Utility
 					{
 						// Mono's WriteRecentlyUsedFiles method also loads the
 						// XML file using XmlDocument
-						XmlDocument xd = new XmlDocument();
+						XmlDocument xd = XmlUtilEx.CreateXmlDocument();
 						xd.Load(strFile);
 					}
 					catch(Exception) // The XML file is invalid

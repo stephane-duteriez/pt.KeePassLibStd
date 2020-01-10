@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,25 +30,25 @@ namespace KeePassLib.Cryptography.KeyDerivation
 			0xEF, 0x63, 0x6D, 0xDF, 0x8C, 0x29, 0x44, 0x4B,
 			0x91, 0xF7, 0xA9, 0xA4, 0x03, 0xE3, 0x0A, 0x0C });
 
-		public const string ParamSalt = "S"; // Byte[]
-		public const string ParamParallelism = "P"; // UInt32
-		public const string ParamMemory = "M"; // UInt64
-		public const string ParamIterations = "I"; // UInt64
-		public const string ParamVersion = "V"; // UInt32
-		public const string ParamSecretKey = "K"; // Byte[]
-		public const string ParamAssocData = "A"; // Byte[]
+		public static readonly string ParamSalt = "S"; // Byte[]
+		public static readonly string ParamParallelism = "P"; // UInt32
+		public static readonly string ParamMemory = "M"; // UInt64
+		public static readonly string ParamIterations = "I"; // UInt64
+		public static readonly string ParamVersion = "V"; // UInt32
+		public static readonly string ParamSecretKey = "K"; // Byte[]
+		public static readonly string ParamAssocData = "A"; // Byte[]
 
 		private const uint MinVersion = 0x10;
 		private const uint MaxVersion = 0x13;
 
 		private const int MinSalt = 8;
-		private const int MaxSalt = int.MaxValue; // .NET limit; 2^32 - 1 in spec
+		private const int MaxSalt = int.MaxValue; // .NET limit; 2^32 - 1 in spec.
 
 		internal const ulong MinIterations = 1;
 		internal const ulong MaxIterations = uint.MaxValue;
 
 		internal const ulong MinMemory = 1024 * 8; // For parallelism = 1
-		// internal const ulong MaxMemory = (ulong)uint.MaxValue * 1024UL; // Spec
+		// internal const ulong MaxMemory = (ulong)uint.MaxValue * 1024UL; // Spec.
 		internal const ulong MaxMemory = int.MaxValue; // .NET limit
 
 		internal const uint MinParallelism = 1;

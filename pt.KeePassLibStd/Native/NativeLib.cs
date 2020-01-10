@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ using System.Threading;
 using System.Windows.Forms;
 #endif
 
+using KeePassLib.Resources;
 using KeePassLib.Utility;
 
 namespace KeePassLib.Native
@@ -232,17 +233,17 @@ namespace KeePassLib.Native
 				{
 					ProcessStartInfo psi = new ProcessStartInfo();
 
-					psi.CreateNoWindow = true;
 					psi.FileName = strAppPath;
-					psi.WindowStyle = ProcessWindowStyle.Hidden;
-					psi.UseShellExecute = false;
-					psi.RedirectStandardOutput = bStdOut;
-
-					if(strStdInput != null) psi.RedirectStandardInput = true;
-
 					if(!string.IsNullOrEmpty(strParams)) psi.Arguments = strParams;
 
-					Process p = Process.Start(psi);
+					psi.CreateNoWindow = true;
+					psi.WindowStyle = ProcessWindowStyle.Hidden;
+					psi.UseShellExecute = false;
+
+					psi.RedirectStandardOutput = bStdOut;
+					if(strStdInput != null) psi.RedirectStandardInput = true;
+
+					Process p = StartProcessEx(psi);
 					pToDispose = p;
 
 					if(strStdInput != null)
@@ -365,7 +366,7 @@ namespace KeePassLib.Native
 			ulong uRounds)
 		{
 #if KeePassUAP || NETSTANDARD2_0
-            return false;
+			return false;
 #else
 			if(!m_bAllowNative) return false;
 
@@ -396,7 +397,7 @@ namespace KeePassLib.Native
 			puRounds = 0;
 
 #if KeePassUAP || NETSTANDARD2_0
-            return false;
+			return false;
 #else
 			if(!m_bAllowNative) return false;
 
@@ -444,6 +445,197 @@ namespace KeePassLib.Native
 
 			if(kvpPointers.Value != IntPtr.Zero)
 				Marshal.FreeHGlobal(kvpPointers.Value);
+		}
+
+		internal static Type GetUwpType(string strType)
+		{
+			if(string.IsNullOrEmpty(strType)) { Debug.Assert(false); return null; }
+
+			// https://referencesource.microsoft.com/#mscorlib/system/runtime/interopservices/windowsruntime/winrtclassactivator.cs
+			return Type.GetType(strType + ", Windows, ContentType=WindowsRuntime", false);
+		}
+
+		// Cf. DecodeArgsToData
+		internal static string EncodeDataToArgs(string strData)
+		{
+			if(strData == null) { Debug.Assert(false); return string.Empty; }
+
+			if(MonoWorkarounds.IsRequired(3471228285U) && IsUnix())
+			{
+				string str = strData;
+
+				str = str.Replace("\\", "\\\\");
+				str = str.Replace("\"", "\\\"");
+
+				// Whether '\'' needs to be encoded depends on the context
+				// (e.g. surrounding quotes); as we do not know what the
+				// caller does with the returned string, we assume that
+				// it will be used in a context where '\'' must not be
+				// encoded; this behavior is documented
+				// str = str.Replace("\'", "\\\'");
+
+				return str;
+			}
+
+			// SHELLEXECUTEINFOW structure documentation:
+			// https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/ns-shellapi-shellexecuteinfow
+			// return strData.Replace("\"", "\"\"\"");
+
+			// Microsoft C/C++ startup code:
+			// https://docs.microsoft.com/en-us/cpp/cpp/parsing-cpp-command-line-arguments
+			// CommandLineToArgvW function:
+			// https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw
+
+			StringBuilder sb = new StringBuilder();
+			int i = 0;
+			while(i < strData.Length)
+			{
+				char ch = strData[i++];
+
+				if(ch == '\\')
+				{
+					int cBackslashes = 1;
+					while((i < strData.Length) && (strData[i] == '\\'))
+					{
+						++cBackslashes;
+						++i;
+					}
+
+					if(i == strData.Length)
+						sb.Append('\\', cBackslashes); // Assume no quote follows
+					else if(strData[i] == '\"')
+					{
+						sb.Append('\\', (cBackslashes * 2) + 1);
+						sb.Append('\"');
+						++i;
+					}
+					else sb.Append('\\', cBackslashes);
+				}
+				else if(ch == '\"') sb.Append("\\\"");
+				else sb.Append(ch);
+			}
+
+			return sb.ToString();
+		}
+
+		// Cf. EncodeDataToArgs
+		internal static string DecodeArgsToData(string strArgs)
+		{
+			if(strArgs == null) { Debug.Assert(false); return string.Empty; }
+
+			Debug.Assert(StrUtil.Count(strArgs, "\"") == StrUtil.Count(strArgs, "\\\""));
+
+			if(MonoWorkarounds.IsRequired(3471228285U) && IsUnix())
+			{
+				string str = strArgs;
+
+				str = str.Replace("\\\"", "\"");
+				str = str.Replace("\\\\", "\\");
+
+				return str;
+			}
+
+			StringBuilder sb = new StringBuilder();
+			int i = 0;
+			while(i < strArgs.Length)
+			{
+				char ch = strArgs[i++];
+
+				if(ch == '\\')
+				{
+					int cBackslashes = 1;
+					while((i < strArgs.Length) && (strArgs[i] == '\\'))
+					{
+						++cBackslashes;
+						++i;
+					}
+
+					if(i == strArgs.Length)
+						sb.Append('\\', cBackslashes); // Assume no quote follows
+					else if(strArgs[i] == '\"')
+					{
+						Debug.Assert((cBackslashes & 1) == 1);
+						sb.Append('\\', (cBackslashes - 1) / 2);
+						sb.Append('\"');
+						++i;
+					}
+					else sb.Append('\\', cBackslashes);
+				}
+				else sb.Append(ch);
+			}
+
+			return sb.ToString();
+		}
+
+		internal static void StartProcess(string strFile)
+		{
+			StartProcess(strFile, null);
+		}
+
+		internal static void StartProcess(string strFile, string strArgs)
+		{
+			ProcessStartInfo psi = new ProcessStartInfo();
+			if(!string.IsNullOrEmpty(strFile)) psi.FileName = strFile;
+			if(!string.IsNullOrEmpty(strArgs)) psi.Arguments = strArgs;
+
+			StartProcess(psi);
+		}
+
+		internal static void StartProcess(ProcessStartInfo psi)
+		{
+			Process p = StartProcessEx(psi);
+
+			try { if(p != null) p.Dispose(); }
+			catch(Exception) { Debug.Assert(false); }
+		}
+
+		internal static Process StartProcessEx(ProcessStartInfo psi)
+		{
+			if(psi == null) { Debug.Assert(false); return null; }
+
+			string strFileOrg = psi.FileName;
+			if(string.IsNullOrEmpty(strFileOrg)) { Debug.Assert(false); return null; }
+
+			Process p;
+			try
+			{
+				string strFile = strFileOrg;
+
+				string[] vUrlEncSchemes = new string[] {
+					"file:", "ftp:", "ftps:", "http:", "https:",
+					"mailto:", "scp:", "sftp:"
+				};
+				foreach(string strPfx in vUrlEncSchemes)
+				{
+					if(strFile.StartsWith(strPfx, StrUtil.CaseIgnoreCmp))
+					{
+						Debug.Assert(string.IsNullOrEmpty(psi.Arguments));
+
+						strFile = strFile.Replace("\"", "%22");
+						strFile = strFile.Replace("\'", "%27");
+						strFile = strFile.Replace("\\", "%5C");
+						break;
+					}
+				}
+
+				if(IsUnix())
+				{
+					// Mono's Process.Start method replaces '\\' by '/',
+					// which may cause a different file to be executed;
+					// therefore, we refuse to start such files
+					if(strFile.Contains("\\") && MonoWorkarounds.IsRequired(190417))
+						throw new ArgumentException(KLRes.PathBackslash);
+
+					strFile = strFile.Replace("\\", "\\\\"); // If WA not required
+					strFile = strFile.Replace("\"", "\\\"");
+				}
+
+				psi.FileName = strFile;
+				p = Process.Start(psi);
+			}
+			finally { psi.FileName = strFileOrg; }
+
+			return p;
 		}
 	}
 }

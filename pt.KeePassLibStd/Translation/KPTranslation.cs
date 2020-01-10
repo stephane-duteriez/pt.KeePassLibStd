@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,13 +45,19 @@ namespace KeePassLib.Translation
 	[XmlRoot("Translation")]
 	public sealed class KPTranslation
 	{
-		public const string FileExtension = "lngx";
+		public static readonly string FileExtension = "lngx";
+		internal const string FileExtension1x = "lng";
 
 		private KPTranslationProperties m_props = new KPTranslationProperties();
 		public KPTranslationProperties Properties
 		{
 			get { return m_props; }
-			set { m_props = value; }
+			set
+			{
+				if(value == null) throw new ArgumentNullException("value");
+
+				m_props = value;
+			}
 		}
 
 		private List<KPStringTable> m_vStringTables = new List<KPStringTable>();
@@ -108,22 +114,22 @@ namespace KeePassLib.Translation
 		public static void Save(KPTranslation kpTrl, Stream sOut,
 			IXmlSerializerEx xs)
 		{
-            if (xs == null) throw new ArgumentNullException("xs");
+			if(xs == null) throw new ArgumentNullException("xs");
 
 #if !KeePassLibSD
-            using (GZipStream gz = new GZipStream(sOut, CompressionMode.Compress))
+			using(GZipStream gz = new GZipStream(sOut, CompressionMode.Compress))
 #else
 			using(GZipOutputStream gz = new GZipOutputStream(sOut))
 #endif
-            {
-                using (XmlWriter xw = XmlUtilEx.CreateXmlWriter(gz))
-                {
-                    xs.Serialize(xw, kpTrl);
-                }
-            }
+			{
+				using(XmlWriter xw = XmlUtilEx.CreateXmlWriter(gz))
+				{
+					xs.Serialize(xw, kpTrl);
+				}
+			}
 
-            sOut.Close();
-        }
+			sOut.Close();
+		}
 
 		public static KPTranslation Load(string strFile, IXmlSerializerEx xs)
 		{
@@ -308,5 +314,13 @@ namespace KeePassLib.Translation
 			if(kpst != null) kpst.ApplyTo(tsic);
 		}
 #endif
+
+		internal bool IsFor(string strIso6391Code)
+		{
+			if(strIso6391Code == null) { Debug.Assert(false); return false; }
+
+			return string.Equals(strIso6391Code, m_props.Iso6391Code,
+				StrUtil.CaseIgnoreCmp);
+		}
 	}
 }

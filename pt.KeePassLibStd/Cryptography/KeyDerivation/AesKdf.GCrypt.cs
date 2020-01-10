@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 #else
             return false;
 #endif
-        }
+		}
 
 		// =============================================================
 		// Multi-threaded implementation
@@ -297,7 +297,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 #else
             return false;
 #endif
-        }
+		}
 
 		private static bool GCryptBegin(byte[] pbData32, byte[] pbSeed32,
 			ref IntPtr h, ref IntPtr pData32, ref IntPtr pSeed32)
@@ -348,7 +348,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 #else
                     return false;
 #endif
-                }
+				}
 
 				Marshal.Copy(pData32, pbData32, 0, 32);
 				return true;
@@ -391,7 +391,7 @@ namespace KeePassLib.Cryptography.KeyDerivation
 #else
                         return false;
 #endif
-                    }
+					}
 
 					r += BenchStep;
 					if(r < BenchStep) // Overflow check
