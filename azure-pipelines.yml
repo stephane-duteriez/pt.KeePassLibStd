@@ -21,7 +21,7 @@ steps:
     ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.\d+")
     echo "version: $ver"
     ver="$ver.$(Build.BuildId)"
-    if [ "$(Build.SourceBranchName)" != "master" ] then
+    if [ "$(Build.SourceBranchName)" != "master" ]; then
       ver="$ver-Beta$(Rev:.r)"
     fi
     echo "version1: $ver"
