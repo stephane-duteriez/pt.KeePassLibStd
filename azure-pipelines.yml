@@ -112,4 +112,4 @@ stages:
               $downloadFolderPath="$(Pipeline.Workspace)" + "\drop\*.nupkg"
               $file=(dir $downlaodFolderPath | Select FullName)
               Write-Host $file.FullName
-              nuget.exe push $file.FullName -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
+              nuget.exe push $file.FullName $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
