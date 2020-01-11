@@ -9,12 +9,25 @@ trigger:
 variables:
   PlatformToBuild: 'Any CPU'
   CofigurationToBuild: Release
+  Version: '1.0.0'
 
 
 pool:
   vmImage: 'windows-latest'
 
 steps:
+- script: |
+    set -x
+    ver=$(grep "<Version>.*</Version>" version.txt | grep -oP "\d\.\d+\.\d+")
+    echo "version: $ver"
+    ver="$ver.$(Build.BuildId)"
+    if[ "$(Build.SourceBranch)" != "master"] then
+      ver="$ver-Beta$(Rev:.r)"
+    fi
+    echo "version1: $ver"
+    sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
+    echo "##vso[task.setvariable variable=Version;isOutput=true]$(ver)"
+
 - task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
