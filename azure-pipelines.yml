@@ -10,74 +10,75 @@ variables:
   PlatformToBuild: 'Any CPU'
   CofigurationToBuild: Release
 
-pool:
-  vmImage: 'windows-latest'
+stages:
+- stage: building
+  jobs:
+  - job: building
+    pool:
+      vmImage: 'windows-latest'
+      
+    steps:
+    - bash: |
+        set -x
+        ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.")
+        echo "version: $ver"
+        ver="${ver}$(Build.BuildId)"
+        if [ "$(Build.SourceBranchName)" != "master" ]; then
+          ver="$ver-Beta$(Build.BuildId)"
+        fi
+        echo "version1: $ver"
+        sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
+        echo "##vso[task.setvariable variable=Version;isOutput=true]${ver}"
+      displayName: 'Update pt.KeePassLibStd version'
+      enabled: false
+    
+    - powershell: |
+        $projFile="$(Build.SourcesDirectory)" + "\pt.KeePassLibStd\pt.KeePassLibStd.csproj"
+        $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.).*</Version>").Matches.Groups[1].Value
+        $version=$version + "$(Build.BuildId)"
+        $versionNuget=$version
+        if ( "$(Build.SourceBranchName)" -ne "master" )
+        {
+          $versionNuget=$versionNuget + "-Beta"
+        }
+        $nugetVersionRegex="<Version>.*</Version>"
+        $nugetVersion="<Version>$versionNuget</Version>"
+        $version=$version + ".0"
+        $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
+        $assemblyVersion="<AssemblyVersion>$version</AssemblyVersion>"
+        $fileVersionRegex="<FileVersion>.*</FileVersion>"
+        $fileVersion="<FileVersion>$version</FileVersion>"
+        $filecontent = Get-Content($projFile)
+        $filecontent -replace $nugetVersionRegex, $nugetVersion -replace $assemblyVersionRegex, $assemblyVersion -replace $fileVersionRegex, $fileVersion | Out-File $projFile utf8
+        $filecontent = Get-Content($projFile)
+        Write-Host $filecontent
+      displayName: 'Update pt.KeePassLibStd version'
+      
+    - task: NuGetToolInstaller@1
+    
+    - task: NuGetCommand@2
+      displayName: 'NuGet restore'
+      inputs:
+        restoreSolution: '**\*.sln'
 
-steps:
-- bash: |
-    set -x
-    ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.")
-    echo "version: $ver"
-    ver="${ver}$(Build.BuildId)"
-    if [ "$(Build.SourceBranchName)" != "master" ]; then
-      ver="$ver-Beta$(Build.BuildId)"
-    fi
-    echo "version1: $ver"
-    sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
-    echo "##vso[task.setvariable variable=Version;isOutput=true]${ver}"
-  displayName: 'Update pt.KeePassLibStd version'
-  enabled: false
+    - task: VSBuild@1
+      inputs:
+        solution: '**\*.sln'
+        platform: '$(PlatformToBuild)'
+        configuration: '$(CofigurationToBuild)'
 
-- powershell: |
-    $projFile="$(Build.SourcesDirectory)" + "\pt.KeePassLibStd\pt.KeePassLibStd.csproj"
-    $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.).*</Version>").Matches.Groups[1].Value
-    $version=$version + "$(Build.BuildId)"
-    $versionNuget=$version
-    if ( "$(Build.SourceBranchName)" -ne "master" )
-    {
-      $versionNuget=$versionNuget + "-Beta"
-    }
-    $nugetVersionRegex="<Version>.*</Version>"
-    $nugetVersion="<Version>$versionNuget</Version>"
-    $version=$version + ".0"
-    $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
-    $assemblyVersion="<AssemblyVersion>$version</AssemblyVersion>"
-    $fileVersionRegex="<FileVersion>.*</FileVersion>"
-    $fileVersion="<FileVersion>$version</FileVersion>"
-    $filecontent = Get-Content($projFile)
-    $filecontent -replace $nugetVersionRegex, $nugetVersion -replace $assemblyVersionRegex, $assemblyVersion -replace $fileVersionRegex, $fileVersion | Out-File $projFile utf8
-    $filecontent = Get-Content($projFile)
-    Write-Host $filecontent
-  env:
-    SOURCES_DIR: $(Build.SourcesDirectory)
-    BUILDID: $(Build.BuildId)
-  displayName: 'Update pt.KeePassLibStd version'
+    - task: VSTest@2
+      inputs:
+        testSelector: 'testAssemblies'
+        testAssemblyVer2: |
+          **\*test*.dll
+          !**\*TestAdapter.dll
+          !**\obj\**
+        searchFolder: '$(System.DefaultWorkingDirectory)'
+        uiTests: false
 
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
-  displayName: 'NuGet restore'
-  inputs:
-    restoreSolution: '**\*.sln'
-
-- task: VSBuild@1
-  inputs:
-    solution: '**\*.sln'
-    platform: '$(PlatformToBuild)'
-    configuration: '$(CofigurationToBuild)'
-
-- task: VSTest@2
-  inputs:
-    testSelector: 'testAssemblies'
-    testAssemblyVer2: |
-      **\*test*.dll
-      !**\*TestAdapter.dll
-      !**\obj\**
-    searchFolder: '$(System.DefaultWorkingDirectory)'
-    uiTests: true
-
-- task: CopyPublishBuildArtifacts@1
-  inputs:
-    Contents: '**/pt.KeePassLibStd.*.nupkg'
-    ArtifactName: 'drop'
-    ArtifactType: 'Container'
+    - task: CopyPublishBuildArtifacts@1
+      inputs:
+        Contents: '**/pt.KeePassLibStd.*.nupkg'
+        ArtifactName: 'drop'
+        ArtifactType: 'Container'
