@@ -6,12 +6,32 @@
 trigger:
 - master
 
+variables:
+  PlatformToBuild: AnyCPU
+  CofigurationToBuild: Release
+
+
 pool:
   vmImage: 'windows-latest'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- task: VSBuild@1
+  inputs:
+    solution: '**\*.sln'
+    platform: '$(PlatformToBuild)'
+    configuration: '$(CofigurationToBuild)'
+
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: |
+      **\*test*.dll
+      !**\*TestAdapter.dll
+      !**\obj\**
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    uiTests: true
+
+
 
 - script: |
     echo Add other tasks to build, test, and deploy your project.
