@@ -108,5 +108,8 @@ stages:
 
           - powershell: |
               $file=(Get-ChildItem -Recurse -Force $(Pipeline.Workspace) -ErrorAction SilentlyContinue | Where-Object { ($_.PSIsContainer -eq $false) -and  ( $_.Name -like "*pt.KeePassLibStd.*.nupkg*") })
-              Write-Host $file
-              nuget.exe push $file[0] -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
+              Write-Host $file.FullName
+              $downloadFolderPath="$(Pipeline.Workspace)" + "\drop\*.nupkg"
+              $file=(dir $downlaodFolderPath | Select FullName)
+              Write-Host $file.FullName
+              nuget.exe push $file.FullName -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
