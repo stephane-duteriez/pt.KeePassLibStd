@@ -15,6 +15,13 @@ pool:
   vmImage: 'windows-latest'
 
 steps:
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  displayName: 'NuGet restore'
+  inputs:
+    restoreSolution: '**\*.sln'
+
 - task: VSBuild@1
   inputs:
     solution: '**\*.sln'
@@ -30,8 +37,6 @@ steps:
       !**\obj\**
     searchFolder: '$(System.DefaultWorkingDirectory)'
     uiTests: true
-
-
 
 - script: |
     echo Add other tasks to build, test, and deploy your project.
