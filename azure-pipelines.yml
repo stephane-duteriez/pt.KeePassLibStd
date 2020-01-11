@@ -101,5 +101,7 @@ stages:
             artifact: drop
             patterns: 'pt.KeePassLibStd*.nupkg'
 
+          - task: NuGetToolInstaller@1
+
           - powershell: |
               nuget.exe push pt.KeePassLibStd*.nupkg -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
