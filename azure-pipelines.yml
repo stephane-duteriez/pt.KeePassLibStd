@@ -39,12 +39,14 @@ steps:
     }
     $nugetVersionRegex="<Version>.*</Version>"
     $nugetVersion="<Version>$versionNuget</Version>"
+    $version=$version + ".0"
     $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
     $assemblyVersion="<AsemblyVersion>$version</AssemblyVersion>"
     $fileVersionRegex="<FileVersion>.*</FileVersion>"
     $fileVersion="<FileVersion>$version</FileVersion>"
     $filecontent = Get-Content($projFile)
     $filecontent -replace $nugetVersionRegex, $nugetVersion -replace $assemblyVersionRegex, $assemblyVersion -replace $fileVersionRegex, $fileVersion | Out-File $projFile
+    Write-Host $filecontent
   env:
     SOURCES_DIR: $(Build.SourcesDirectory)
     BUILDID: $(Build.BuildId)
