@@ -29,11 +29,11 @@ steps:
   enabled: false
 
 - powershell: |
-    $projFile=$env:SOURCES_DIR + "/pt.KeePassLibStd/pt.KeePassLibStd.csproj"
+    $projFile=$(Build.SourcesDirectory) + "/pt.KeePassLibStd/pt.KeePassLibStd.csproj"
     $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.).*</Version>").Matches.Groups[1].Value
     $version=$version + "$env:BUILDID"
     $versionNuget=$version
-    if ( $(Build.SourceBranchName) -ne "master" )
+    if ( "$(Build.SourceBranchName)" -ne "master" )
     {
       $versionNuget=$versionNuget + "-Beta"
     }
