@@ -26,6 +26,25 @@ steps:
     sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
     echo "##vso[task.setvariable variable=Version;isOutput=true]${ver}"
   displayName: 'Update pt.KeePassLibStd version'
+  enabled: false
+
+- powershell: |
+    $projFile=$(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
+    $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.).*</Version>").Matches.Groups[1].Value
+    $version=$version + "$(Build.BuildId)"
+    $versionNuget=$version
+    if ( $(Build.SourceBranchName) -ne "master" )
+    {
+      $versionNuget=$versionNuget + "-Beta"
+    }
+    $nugetVersionRegex="<Version>.*</Version>"
+    $nugetVersion="<Version>$versionNuget</Version>"
+    $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
+    $assemblyVersion="<AsemblyVersion>$version</AssemblyVersion>"
+    $fileVersionRegex="<FileVersion>.*</FileVersion>"
+    $fileVersion="<FileVersion>$version</FileVersion>"
+    $filecontent -replace $nugetVersionRegex, $nugetVersion -replace $assemblyVersionRegex, $assemblyVersion -replace $fileVersionRegex, $fileVersion | Out-File $projFile
+  displayName: 'Update pt.KeePassLibStd version'
 
 - task: NuGetToolInstaller@1
 
