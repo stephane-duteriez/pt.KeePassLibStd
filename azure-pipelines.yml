@@ -97,7 +97,7 @@ stages:
       runOnce:
         deploy:
           steps:
-          - download:
+          - download: current
             artifact: drop
             patterns: 'pt.KeePassLibStd*.nupkg'
 
