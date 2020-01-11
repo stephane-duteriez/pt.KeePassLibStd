@@ -7,7 +7,7 @@ trigger:
 - master
 
 variables:
-  PlatformToBuild: AnyCPU
+  PlatformToBuild: 'Any CPU'
   CofigurationToBuild: Release
 
 
