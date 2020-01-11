@@ -18,11 +18,11 @@ pool:
 steps:
 - bash: |
     set -x
-    ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.\d+")
+    ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.")
     echo "version: $ver"
-    ver="$ver.$(Build.BuildId)"
+    ver="${ver}$(Build.BuildId)"
     if [ "$(Build.SourceBranchName)" != "master" ]; then
-      ver="$ver-Beta$(Rev:.r)"
+      ver="$ver-Beta$(Build.BuildId)"
     fi
     echo "version1: $ver"
     sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
