@@ -82,3 +82,28 @@ stages:
         Contents: '**/pt.KeePassLibStd.*.nupkg'
         ArtifactName: 'drop'
         ArtifactType: 'Container'
+
+- stage: publishing
+  jobs:
+  - deployment: nuget
+    environment: nuget-org
+    pool:
+      vmImage: 'windows-latest'
+    strategy:      
+      runOnce:
+        deploy:
+          steps:
+          - powershell:
+              inputs:
+        nuGetServiceConnections: 'nuget.org artjom@panteam.net'
+
+    - download:
+       artifact: drop
+       patterns: '*.nupkg'
+
+    - task: NuGetCommand@2
+      inputs:
+        command: 'push'
+        packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+        nuGetFeedType: 'external'
+        publishFeedCredentials: 'nuget.org artjom@panteam.net'
