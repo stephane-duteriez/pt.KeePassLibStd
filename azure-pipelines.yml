@@ -26,7 +26,7 @@ steps:
     fi
     echo "version1: $ver"
     sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
-    echo "##vso[task.setvariable variable=Version;isOutput=true]$(ver)"
+    echo "##vso[task.setvariable variable=Version;isOutput=true]${ver}"
   displayName: 'Set pt.KeePassLibStd version to $(Version)'
 
 - task: NuGetToolInstaller@1
