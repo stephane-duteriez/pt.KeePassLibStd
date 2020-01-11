@@ -107,4 +107,6 @@ stages:
           - task: NuGetToolInstaller@1
 
           - powershell: |
-              nuget.exe push $(DownloadNugetPackage) -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
+              $file=(Get-ChildItem -Recurse -Force $(Pipeline.Workspace) -ErrorAction SilentlyContinue | Where-Object { ($_.PSIsContainer -eq $false) -and  ( $_.Name -like "*pt.KeePassLibStd.*.nupkg*") })
+              Write-Host $file
+              nuget.exe push $file[0] -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
