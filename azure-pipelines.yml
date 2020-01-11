@@ -29,9 +29,9 @@ steps:
   enabled: false
 
 - powershell: |
-    $projFile=$(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
+    $projFile=$env:SOURCES_DIR/pt.KeePassLibStd/pt.KeePassLibStd.csproj
     $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.).*</Version>").Matches.Groups[1].Value
-    $version=$version + "$(Build.BuildId)"
+    $version=$version + "$env:BUILDID"
     $versionNuget=$version
     if ( $(Build.SourceBranchName) -ne "master" )
     {
@@ -45,6 +45,9 @@ steps:
     $fileVersion="<FileVersion>$version</FileVersion>"
     $filecontent = Get-Content($projFile)
     $filecontent -replace $nugetVersionRegex, $nugetVersion -replace $assemblyVersionRegex, $assemblyVersion -replace $fileVersionRegex, $fileVersion | Out-File $projFile
+  env:
+    SOURCES_DIR: $(Build.SourcesDirectory)
+    BUILDID: $(Build.BuildId)
   displayName: 'Update pt.KeePassLibStd version'
 
 - task: NuGetToolInstaller@1
