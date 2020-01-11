@@ -16,7 +16,7 @@ pool:
   vmImage: 'windows-latest'
 
 steps:
-- script: |
+- bash: |
     set -x
     ver=$(grep "<Version>.*</Version>" version.txt | grep -oP "\d\.\d+\.\d+")
     echo "version: $ver"
@@ -27,6 +27,7 @@ steps:
     echo "version1: $ver"
     sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
     echo "##vso[task.setvariable variable=Version;isOutput=true]$(ver)"
+  displayName: 'Set pt.KeePassLibStd version to $(Version)'
 
 - task: NuGetToolInstaller@1
 
