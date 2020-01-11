@@ -101,9 +101,10 @@ stages:
           steps:
           - download: current
             artifact: drop
-            patterns: 'pt.KeePassLibStd*.nupkg'
+            patterns: '**/pt.KeePassLibStd.*.nupkg'
+            name: DownloadNugetPackage
 
           - task: NuGetToolInstaller@1
 
           - powershell: |
-              nuget.exe push pt.KeePassLibStd$(NugetPackageVersion).nupkg -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
+              nuget.exe push $(DownloadNugetPackage) -ApiKey $(nuget.apikey) -Source https://api.nuget.org/v3/index.json
