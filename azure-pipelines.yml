@@ -41,7 +41,7 @@ steps:
     $nugetVersion="<Version>$versionNuget</Version>"
     $version=$version + ".0"
     $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
-    $assemblyVersion="<AsemblyVersion>$version</AssemblyVersion>"
+    $assemblyVersion="<AssemblyVersion>$version</AssemblyVersion>"
     $fileVersionRegex="<FileVersion>.*</FileVersion>"
     $fileVersion="<FileVersion>$version</FileVersion>"
     $filecontent = Get-Content($projFile)
