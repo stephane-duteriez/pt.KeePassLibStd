@@ -3,12 +3,12 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.37.0</Version>
+    <Version>2.43.0</Version>
     <Authors>ArtjomP</Authors>
     <Company>Panteam</Company>
     <PackageTags>KeePass;KeePassLib;</PackageTags>
-    <AssemblyVersion>2.37.0.0</AssemblyVersion>
-    <FileVersion>2.37.0.0</FileVersion>
+    <AssemblyVersion>2.43.0.0</AssemblyVersion>
+    <FileVersion>2.43.0.0</FileVersion>
     <Product>pt.KeePass</Product>
     <Description>Unofficial port of KeePassLib to .NET Standard 2.0 offical KeePass project is here: https://keepass.info/</Description>
     <PackageIconUrl>https://cdn2.iconfinder.com/data/icons/ecqlipse2/KEEPASS.png</PackageIconUrl>
