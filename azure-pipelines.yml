@@ -107,13 +107,13 @@ stages:
           - task: NuGetToolInstaller@1
 
           - powershell: |
-              Set-PSDebug -Trace 2
+              Set-PSDebug -Trace 1
               $file=(Get-ChildItem -Recurse -Force $(Pipeline.Workspace) -ErrorAction SilentlyContinue | Where-Object { ($_.PSIsContainer -eq $false) -and  ( $_.Name -like "*pt.KeePassLibStd.*.nupkg*") })
               Write-Host $file.FullName
               $downloadFolderPath="$(Pipeline.Workspace)" + "\drop\*.nupkg"
               $file=(dir $downlaodFolderPath | Select FullName)
               $fileFullName=$file.FullName
-              Write-Host $file.FullName
-              dotnet nuget push "$file.FullName" -k $(nuget.apikey) -s https://api.nuget.org/v3/index.json
+              Write-Host $fileFullName
+              dotnet nuget push "$fileFullName" -k $(nuget.apikey) -s https://api.nuget.org/v3/index.json
               nuget.exe setApiKey $(nuget.apikey)
               #nuget.exe push $file.FullName -Source https://api.nuget.org/v3/index.json
