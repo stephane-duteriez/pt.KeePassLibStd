@@ -104,6 +104,8 @@ stages:
             patterns: '**/pt.KeePassLibStd.*.nupkg'
             name: DownloadNugetPackage
 
+          - task: NuGetToolInstaller@1
+
           - powershell: |
               #Set-PSDebug -Trace 1
               #file=(Get-ChildItem -Recurse -Force $(Pipeline.Workspace) -ErrorAction SilentlyContinue | Where-Object { ($_.PSIsContainer -eq $false) -and  ( $_.Name -like "*pt.KeePassLibStd.*.nupkg*") })
@@ -113,5 +115,3 @@ stages:
               $fileFullName=$file.FullName
               Write-Host $fileFullName
               dotnet nuget push $fileFullName -k $(nuget.apikey) -s https://api.nuget.org/v3/index.json
-              #nuget.exe setApiKey $(nuget.apikey)
-              #nuget.exe push $file.FullName -Source https://api.nuget.org/v3/index.json
