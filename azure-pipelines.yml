@@ -21,7 +21,7 @@ stages:
     steps:
     - bash: |
         set -x
-        ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.")
+        ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.\d+")
         echo "version: $ver"
         ver="${ver}$(Build.BuildId)"
         if [ "$(Build.SourceBranchName)" != "master" ]; then
@@ -35,8 +35,8 @@ stages:
     
     - powershell: |
         $projFile="$(Build.SourcesDirectory)" + "\pt.KeePassLibStd\pt.KeePassLibStd.csproj"
-        $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.).*</Version>").Matches.Groups[1].Value
-        $version=$version + "$(Build.BuildId)"
+        $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.\d+).*</Version>").Matches.Groups[1].Value
+        $version=$version + ".$(Build.BuildId)"
         $versionNuget=$version
         if ( "$(Build.SourceBranchName)" -ne "master" )
         {
@@ -113,7 +113,7 @@ stages:
                 Set-PSDebug -Trace 1
                 $file=(Get-ChildItem -Recurse -Force $(Pipeline.Workspace) -ErrorAction SilentlyContinue | Where-Object { ($_.PSIsContainer -eq $false) -and  ( $_.Name -like "*pt.KeePassLibStd.*.nupkg*") })
                 Write-Host $file.FullName
-                $downloadFolderPath="$(Pipeline.Workspace)" + "\drop\*.nupkg"
+                #$downloadFolderPath="$(Pipeline.Workspace)" + "\drop\*.nupkg"
                 #$file=(dir $downlaodFolderPath | Select FullName)
                 $fileFullName=$file.FullName
                 Write-Host $fileFullName
