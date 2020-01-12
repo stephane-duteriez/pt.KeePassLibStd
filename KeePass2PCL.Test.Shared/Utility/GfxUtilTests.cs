@@ -18,6 +18,7 @@ namespace KeePass2PCL.Test.Shared.Utility
             "QMdny4VogAAAABJRU5ErkJggg==";
 
         [Test ()]
+        [Ignore("DllNotFoundException")]
         public void TestLoadImage ()
         {
             var testData = Convert.FromBase64String (testImageData);
