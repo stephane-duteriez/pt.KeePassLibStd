@@ -44,7 +44,6 @@ stages:
         }
         $nugetVersionRegex="<Version>.*</Version>"
         $nugetVersion="<Version>$versionNuget</Version>"
-        $version=$version + ".0"
         $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
         $assemblyVersion="<AssemblyVersion>$version</AssemblyVersion>"
         $fileVersionRegex="<FileVersion>.*</FileVersion>"
