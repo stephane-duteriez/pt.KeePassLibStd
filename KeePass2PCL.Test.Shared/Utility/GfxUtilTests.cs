@@ -17,7 +17,7 @@ namespace KeePass2PCL.Test.Shared.Utility
             "VkIHdpdGggR0lNUFeBDhcAAAAaSURBVCjPY/z//z8DKYCJgUQwqmFUw9DRAABVb" +
             "QMdny4VogAAAABJRU5ErkJggg==";
 
-        [Test]
+        [Test ()]
         [Ignore("DllNotFoundException")]
         public void TestLoadImage ()
         {

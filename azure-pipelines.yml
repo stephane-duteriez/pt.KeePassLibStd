@@ -1,0 +1,119 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+variables:
+  PlatformToBuild: 'Any CPU'
+  CofigurationToBuild: Release
+
+stages:
+- stage: building
+  jobs:
+  - job: building
+    pool:
+      vmImage: 'windows-latest'
+    variables:
+    - group: Sharing
+    steps:
+    - bash: |
+        set -x
+        ver=$(grep "<Version>.*</Version>" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj | grep -oP "\d\.\d+\.\d+")
+        echo "version: $ver"
+        ver="${ver}$(Build.BuildId)"
+        if [ "$(Build.SourceBranchName)" != "master" ]; then
+          ver="$ver-Beta$(Build.BuildId)"
+        fi
+        echo "version1: $ver"
+        sed -i "s|<Version>.*</Version>|<Version>$ver</Version>|g" $(Build.SourcesDirectory)/pt.KeePassLibStd/pt.KeePassLibStd.csproj
+        echo "##vso[task.setvariable variable=NugetPackageVersion;isOutput=true]${ver}"
+      displayName: 'Update pt.KeePassLibStd version'
+      enabled: false
+    
+    - powershell: |
+        $projFile="$(Build.SourcesDirectory)" + "\pt.KeePassLibStd\pt.KeePassLibStd.csproj"
+        $version=(Select-String -Path $projFile -Pattern "<Version>(\d\.\d+\.\d+).*</Version>").Matches.Groups[1].Value
+        $version=$version + ".$(Build.BuildId)"
+        $versionNuget=$version
+        if ( "$(Build.SourceBranchName)" -ne "master" )
+        {
+          $versionNuget=$versionNuget + "-Beta"
+        }
+        $nugetVersionRegex="<Version>.*</Version>"
+        $nugetVersion="<Version>$versionNuget</Version>"
+        $assemblyVersionRegex="<AssemblyVersion>.*</AssemblyVersion>"
+        $assemblyVersion="<AssemblyVersion>$version</AssemblyVersion>"
+        $fileVersionRegex="<FileVersion>.*</FileVersion>"
+        $fileVersion="<FileVersion>$version</FileVersion>"
+        $filecontent = Get-Content($projFile)
+        $filecontent -replace $nugetVersionRegex, $nugetVersion -replace $assemblyVersionRegex, $assemblyVersion -replace $fileVersionRegex, $fileVersion | Out-File $projFile utf8
+        $filecontent = Get-Content($projFile)
+        Write-Host $filecontent
+        echo "##vso[task.setvariable variable=NugetPackageVersion;isOutput=true]$versionNuget"
+      name: UpdateVersion
+      displayName: 'Update pt.KeePassLibStd version'
+      
+    - task: NuGetToolInstaller@1
+    
+    - task: NuGetCommand@2
+      displayName: 'NuGet restore'
+      inputs:
+        restoreSolution: '**\*.sln'
+
+    - task: VSBuild@1
+      inputs:
+        solution: '**\*.sln'
+        platform: '$(PlatformToBuild)'
+        configuration: '$(CofigurationToBuild)'
+
+    - task: VSTest@2
+      inputs:
+        testSelector: 'testAssemblies'
+        testAssemblyVer2: |
+          **\*test*.dll
+          !**\*TestAdapter.dll
+          !**\obj\**
+        searchFolder: '$(System.DefaultWorkingDirectory)'
+        uiTests: false
+
+    - task: CopyPublishBuildArtifacts@1
+      inputs:
+        Contents: '**/pt.KeePassLibStd.*.nupkg'
+        ArtifactName: 'drop'
+        ArtifactType: 'Container'
+
+- stage: publishing
+  jobs:
+  - deployment: nuget
+    variables:
+    - group: Creds
+    - group: Sharing
+    environment: nuget-org
+    pool:
+      vmImage: 'windows-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+            patterns: '**/pt.KeePassLibStd.*.nupkg'
+            name: DownloadNugetPackage
+
+          - task: NuGetToolInstaller@1
+
+          - task: PowerShell@2
+            inputs:
+              targetType: 'inline'
+              script: |
+                Set-PSDebug -Trace 1
+                $file=(Get-ChildItem -Recurse -Force $(Pipeline.Workspace) -ErrorAction SilentlyContinue | Where-Object { ($_.PSIsContainer -eq $false) -and  ( $_.Name -like "*pt.KeePassLibStd.*.nupkg*") })
+                Write-Host $file.FullName
+                #$downloadFolderPath="$(Pipeline.Workspace)" + "\drop\*.nupkg"
+                #$file=(dir $downlaodFolderPath | Select FullName)
+                $fileFullName=$file.FullName
+                Write-Host $fileFullName
+                dotnet nuget push $fileFullName -k $(nuget.apikey) -s https://api.nuget.org/v3/index.json
