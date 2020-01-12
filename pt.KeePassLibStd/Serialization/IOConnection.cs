@@ -239,6 +239,9 @@ namespace KeePassLib.Serialization
 
 	public static class IOConnection
 	{
+#if NETSTANDARD2_0
+		public static IFilesProvider m_FilesProvider = new DefaultFilesProvider();
+#endif
 #if !KeePassLibSD
 		private static ProxyServerType m_pstProxyType = ProxyServerType.System;
 		private static string m_strProxyAddr = string.Empty;
@@ -596,8 +599,12 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenReadLocal(IOConnectionInfo ioc)
 		{
+#if NETSTANDARD2_0
+			return m_FilesProvider.OpenReadLocal(ioc.Path);
+#else
 			return new FileStream(ioc.Path, FileMode.Open, FileAccess.Read,
 				FileShare.Read);
+#endif
 		}
 
 #if !KeePassLibSD && !NETSTANDARD2_0
@@ -631,8 +638,12 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenWriteLocal(IOConnectionInfo ioc)
 		{
+#if NETSTANDARD2_0
+			return m_FilesProvider.OpenWriteLocal(ioc.Path);
+#else
 			return new FileStream(ioc.Path, FileMode.Create, FileAccess.Write,
 				FileShare.None);
+#endif
 		}
 
 		public static bool FileExists(IOConnectionInfo ioc)
@@ -645,8 +656,11 @@ namespace KeePassLib.Serialization
 			if(ioc == null) { Debug.Assert(false); return false; }
 
 			RaiseIOAccessPreEvent(ioc, IOAccessType.Exists);
-
-			if(ioc.IsLocalFile()) return File.Exists(ioc.Path);
+#if NETSTANDARD2_0
+			if (ioc.IsLocalFile()) return m_FilesProvider.IsFileExist(ioc.Path);
+#else
+			if (ioc.IsLocalFile()) return File.Exists(ioc.Path);
+#endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 			if(ioc.Path.StartsWith("ftp://", StrUtil.CaseIgnoreCmp))
@@ -683,7 +697,11 @@ namespace KeePassLib.Serialization
 		{
 			RaiseIOAccessPreEvent(ioc, IOAccessType.Delete);
 
-			if(ioc.IsLocalFile()) { File.Delete(ioc.Path); return; }
+#if NETSTANDARD2_0
+			if (ioc.IsLocalFile()) { m_FilesProvider.DeleteFile(ioc.Path); return; }
+#else
+			if (ioc.IsLocalFile()) { File.Delete(ioc.Path); return; }
+#endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 			WebRequest req = CreateWebRequest(ioc);
@@ -717,7 +735,11 @@ namespace KeePassLib.Serialization
 		{
 			RaiseIOAccessPreEvent(iocFrom, iocTo, IOAccessType.Move);
 
-			if(iocFrom.IsLocalFile()) { File.Move(iocFrom.Path, iocTo.Path); return; }
+#if NETSTANDARD2_0
+			if (iocFrom.IsLocalFile()) { m_FilesProvider.MoveFile(iocFrom.Path, iocTo.Path); return; }
+#else
+			if (iocFrom.IsLocalFile()) { File.Move(iocFrom.Path, iocTo.Path); return; }
+#endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 			WebRequest req = CreateWebRequest(iocFrom);
