@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -239,7 +239,9 @@ namespace KeePassLib.Serialization
 
 	public static class IOConnection
 	{
-        public static IFilesProvider m_FilesProvider = new DefaultFilesProvider();
+#if NETSTANDARD2_0
+		public static IFilesProvider m_FilesProvider = new DefaultFilesProvider();
+#endif
 #if !KeePassLibSD
 		private static ProxyServerType m_pstProxyType = ProxyServerType.System;
 		private static string m_strProxyAddr = string.Empty;
@@ -261,11 +263,11 @@ namespace KeePassLib.Serialization
 #endif
 
 		// Web request methods
-		public const string WrmDeleteFile = "DELETEFILE";
-		public const string WrmMoveFile = "MOVEFILE";
+		public static readonly string WrmDeleteFile = "DELETEFILE";
+		public static readonly string WrmMoveFile = "MOVEFILE";
 
 		// Web request headers
-		public const string WrhMoveFileTo = "MoveFileTo";
+		public static readonly string WrhMoveFileTo = "MoveFileTo";
 
 		public static event EventHandler<IOAccessEventArgs> IOAccessPre;
 
@@ -597,7 +599,12 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenReadLocal(IOConnectionInfo ioc)
 		{
-            return m_FilesProvider.OpenReadLocal(ioc.Path);
+#if NETSTANDARD2_0
+			return m_FilesProvider.OpenReadLocal(ioc.Path);
+#else
+			return new FileStream(ioc.Path, FileMode.Open, FileAccess.Read,
+				FileShare.Read);
+#endif
 		}
 
 #if !KeePassLibSD && !NETSTANDARD2_0
@@ -631,7 +638,12 @@ namespace KeePassLib.Serialization
 
 		private static Stream OpenWriteLocal(IOConnectionInfo ioc)
 		{
-            return m_FilesProvider.OpenWriteLocal(ioc.Path);
+#if NETSTANDARD2_0
+			return m_FilesProvider.OpenWriteLocal(ioc.Path);
+#else
+			return new FileStream(ioc.Path, FileMode.Create, FileAccess.Write,
+				FileShare.None);
+#endif
 		}
 
 		public static bool FileExists(IOConnectionInfo ioc)
@@ -644,8 +656,11 @@ namespace KeePassLib.Serialization
 			if(ioc == null) { Debug.Assert(false); return false; }
 
 			RaiseIOAccessPreEvent(ioc, IOAccessType.Exists);
-
-			if(ioc.IsLocalFile()) return m_FilesProvider.IsFileExist(ioc.Path);
+#if NETSTANDARD2_0
+			if (ioc.IsLocalFile()) return m_FilesProvider.IsFileExist(ioc.Path);
+#else
+			if (ioc.IsLocalFile()) return File.Exists(ioc.Path);
+#endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 			if(ioc.Path.StartsWith("ftp://", StrUtil.CaseIgnoreCmp))
@@ -682,7 +697,11 @@ namespace KeePassLib.Serialization
 		{
 			RaiseIOAccessPreEvent(ioc, IOAccessType.Delete);
 
-			if(ioc.IsLocalFile()) { m_FilesProvider.DeleteFile(ioc.Path); return; }
+#if NETSTANDARD2_0
+			if (ioc.IsLocalFile()) { m_FilesProvider.DeleteFile(ioc.Path); return; }
+#else
+			if (ioc.IsLocalFile()) { File.Delete(ioc.Path); return; }
+#endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 			WebRequest req = CreateWebRequest(ioc);
@@ -716,19 +735,25 @@ namespace KeePassLib.Serialization
 		{
 			RaiseIOAccessPreEvent(iocFrom, iocTo, IOAccessType.Move);
 
-			if(iocFrom.IsLocalFile()) { m_FilesProvider.MoveFile(iocFrom.Path, iocTo.Path); return; }
+#if NETSTANDARD2_0
+			if (iocFrom.IsLocalFile()) { m_FilesProvider.MoveFile(iocFrom.Path, iocTo.Path); return; }
+#else
+			if (iocFrom.IsLocalFile()) { File.Move(iocFrom.Path, iocTo.Path); return; }
+#endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 			WebRequest req = CreateWebRequest(iocFrom);
 			if(req != null)
 			{
+				string strToCnc = UrlUtil.GetCanonicalUri(iocTo.Path);
+
 				if(IsHttpWebRequest(req))
 				{
 #if KeePassUAP
 					throw new NotSupportedException();
 #else
 					req.Method = "MOVE";
-					req.Headers.Set("Destination", iocTo.Path); // Full URL supported
+					req.Headers.Set("Destination", strToCnc); // Full URL supported
 #endif
 				}
 				else if(IsFtpWebRequest(req))
@@ -737,13 +762,13 @@ namespace KeePassLib.Serialization
 					throw new NotSupportedException();
 #else
 					req.Method = WebRequestMethods.Ftp.Rename;
-					string strTo = UrlUtil.GetFileName(iocTo.Path);
+					string strToName = UrlUtil.GetFileName(strToCnc);
 
 					// We're affected by .NET bug 621450:
 					// https://connect.microsoft.com/VisualStudio/feedback/details/621450/problem-renaming-file-on-ftp-server-using-ftpwebrequest-in-net-framework-4-0-vs2010-only
 					// Prepending "./", "%2E/" or "Dummy/../" doesn't work.
 
-					((FtpWebRequest)req).RenameTo = strTo;
+					((FtpWebRequest)req).RenameTo = strToName;
 #endif
 				}
 				else if(IsFileWebRequest(req))
@@ -758,7 +783,7 @@ namespace KeePassLib.Serialization
 					throw new NotSupportedException();
 #else
 					req.Method = WrmMoveFile;
-					req.Headers.Set(WrhMoveFileTo, iocTo.Path);
+					req.Headers.Set(WrhMoveFileTo, strToCnc);
 #endif
 				}
 
@@ -816,24 +841,14 @@ namespace KeePassLib.Serialization
 
 		public static byte[] ReadFile(IOConnectionInfo ioc)
 		{
-			Stream sIn = null;
-			MemoryStream ms = null;
 			try
 			{
-				sIn = IOConnection.OpenRead(ioc);
-				if(sIn == null) return null;
-
-				ms = new MemoryStream();
-				MemUtil.CopyStream(sIn, ms);
-
-				return ms.ToArray();
+				using(Stream s = IOConnection.OpenRead(ioc))
+				{
+					return MemUtil.Read(s);
+				}
 			}
-			catch(Exception) { }
-			finally
-			{
-				if(sIn != null) sIn.Close();
-				if(ms != null) ms.Close();
-			}
+			catch(Exception) { Debug.Assert(false); }
 
 			return null;
 		}

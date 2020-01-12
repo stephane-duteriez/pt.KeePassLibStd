@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2018 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,10 @@ using System.Text;
 using System.Security.AccessControl;
 #endif
 
+using Microsoft.Win32;
+
 using KeePassLib.Cryptography;
+using KeePassLib.Delegates;
 using KeePassLib.Native;
 using KeePassLib.Resources;
 using KeePassLib.Utility;
@@ -43,11 +46,10 @@ namespace KeePassLib.Serialization
 		private IOConnectionInfo m_iocTxfMidFallback = null; // Null <=> TxF not used
 
 		private bool m_bMadeUnhidden = false;
-
 		private List<IOConnectionInfo> m_lToDelete = new List<IOConnectionInfo>();
 
 		private const string StrTempSuffix = ".tmp";
-		private const string StrTxfTempPrefix = PwDefs.ShortProductName + "_TxF_";
+		private static readonly string StrTxfTempPrefix = PwDefs.ShortProductName + "_TxF_";
 		private const string StrTxfTempSuffix = ".tmp";
 
 		private static Dictionary<string, bool> g_dEnabled =
@@ -210,7 +212,8 @@ namespace KeePassLib.Serialization
 			bool bEfsEncrypted = false;
 			byte[] pbSec = null;
 #endif
-            DateTime? otCreation = null;
+			DateTime? otCreation = null;
+			SimpleStat sStat = null;
 
 			bool bBaseExists = IOConnection.FileExists(m_iocBase);
 			if(bBaseExists && m_iocBase.IsLocalFile())
@@ -224,14 +227,15 @@ namespace KeePassLib.Serialization
 					try { if(bEfsEncrypted) File.Decrypt(m_iocBase.Path); } // For TxF
 					catch(Exception) { Debug.Assert(false); }
 #endif
-                    otCreation = File.GetCreationTimeUtc(m_iocBase.Path);
+					otCreation = File.GetCreationTimeUtc(m_iocBase.Path);
+					sStat = SimpleStat.Get(m_iocBase.Path);
 #if !KeePassUAP && !NETSTANDARD2_0
 					// May throw with Mono
 					FileSecurity sec = File.GetAccessControl(m_iocBase.Path, acs);
 					if(sec != null) pbSec = sec.GetSecurityDescriptorBinaryForm();
 #endif
-                }
-                catch (Exception) { Debug.Assert(NativeLib.IsUnix()); }
+				}
+				catch(Exception) { Debug.Assert(NativeLib.IsUnix()); }
 
 				// if((long)(faBase & FileAttributes.ReadOnly) != 0)
 				//	throw new UnauthorizedAccessException();
@@ -245,6 +249,7 @@ namespace KeePassLib.Serialization
 #if !KeePassUAP && !NETSTANDARD2_0
 			else { Debug.Assert(pbSec != null); } // TxF success => NTFS => has ACL
 #endif
+
 			try
 			{
 				// If File.GetCreationTimeUtc fails, it may return a
@@ -253,6 +258,8 @@ namespace KeePassLib.Serialization
 				// https://msdn.microsoft.com/en-us/library/system.io.file.getcreationtimeutc.aspx
 				if(otCreation.HasValue && (otCreation.Value.Year >= 1971))
 					File.SetCreationTimeUtc(m_iocBase.Path, otCreation.Value);
+
+				if(sStat != null) SimpleStat.Set(m_iocBase.Path, sStat);
 
 #if !KeePassUAP && !NETSTANDARD2_0
 				if(bEfsEncrypted)
@@ -275,8 +282,8 @@ namespace KeePassLib.Serialization
 					File.SetAccessControl(m_iocBase.Path, sec);
 				}
 #endif
-            }
-            catch (Exception) { Debug.Assert(false); }
+			}
+			catch(Exception) { Debug.Assert(false); }
 
 			if(bMadeUnhidden) UrlUtil.HideFile(m_iocBase.Path, true);
 		}
@@ -293,7 +300,6 @@ namespace KeePassLib.Serialization
 
 		private static bool TxfIsSupported(char chDriveLetter)
 		{
-#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			if(chDriveLetter == '\0') return false;
 
 			try
@@ -315,7 +321,7 @@ namespace KeePassLib.Serialization
 				return ((uFlags & NativeMethods.FILE_SUPPORTS_TRANSACTIONS) != 0);
 			}
 			catch(Exception) { Debug.Assert(false); }
-#endif
+
 			return false;
 		}
 
@@ -325,6 +331,7 @@ namespace KeePassLib.Serialization
 			{
 				if(NativeLib.IsUnix()) return;
 				if(!m_iocBase.IsLocalFile()) return;
+				if(IsOneDriveWorkaroundRequired()) return;
 
 				string strID = StrUtil.AlphaNumericOnly(Convert.ToBase64String(
 					CryptoRandom.Instance.GetRandomBytes(16)));
@@ -348,7 +355,6 @@ namespace KeePassLib.Serialization
 
 		private bool TxfMove()
 		{
-#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			if(m_iocTxfMidFallback == null) return false;
 
 			if(TxfMoveWithTx()) return true;
@@ -365,14 +371,10 @@ namespace KeePassLib.Serialization
 			Debug.Assert(!File.Exists(m_iocTemp.Path));
 			Debug.Assert(!File.Exists(m_iocTxfMidFallback.Path));
 			return true;
-#else
-            return false;
-#endif
-        }
+		}
 
 		private bool TxfMoveWithTx()
 		{
-#if (!KeePassLibSD && !KeePassUAP && !NETSTANDARD2_0)
 			IntPtr hTx = new IntPtr((int)NativeMethods.INVALID_HANDLE_VALUE);
 			Debug.Assert(hTx.ToInt64() == NativeMethods.INVALID_HANDLE_VALUE);
 			try
@@ -417,7 +419,7 @@ namespace KeePassLib.Serialization
 					catch(Exception) { Debug.Assert(false); }
 				}
 			}
-#endif
+
 			return false;
 		}
 
@@ -442,6 +444,89 @@ namespace KeePassLib.Serialization
 				}
 			}
 			catch(Exception) { Debug.Assert(false); }
+		}
+
+		// https://sourceforge.net/p/keepass/discussion/329220/thread/672ffecc65/
+		// https://sourceforge.net/p/keepass/discussion/329221/thread/514786c23a/
+		private bool IsOneDriveWorkaroundRequired()
+		{
+			if(NativeLib.IsUnix()) return false;
+#if !NETSTANDARD2_0
+			try
+			{
+				string strReleaseId = (Registry.GetValue(
+					"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+					"ReleaseId", string.Empty) as string);
+				if(strReleaseId != "1809") return false;
+
+				string strFile = m_iocBase.Path;
+
+				GFunc<string, string, bool> fMatch = delegate(string strRoot, string strSfx)
+				{
+					if(string.IsNullOrEmpty(strRoot)) return false;
+					string strPfx = UrlUtil.EnsureTerminatingSeparator(
+						strRoot, false) + strSfx;
+					return strFile.StartsWith(strPfx, StrUtil.CaseIgnoreCmp);
+				};
+				GFunc<string, string, bool> fMatchEnv = delegate(string strEnv, string strSfx)
+				{
+					return fMatch(Environment.GetEnvironmentVariable(strEnv), strSfx);
+				};
+
+				string strKnown = NativeMethods.GetKnownFolderPath(
+					NativeMethods.FOLDERID_SkyDrive);
+				if(fMatch(strKnown, string.Empty)) return true;
+
+				if(fMatchEnv("USERPROFILE", "OneDrive\\")) return true;
+				if(fMatchEnv("OneDrive", string.Empty)) return true;
+				if(fMatchEnv("OneDriveCommercial", string.Empty)) return true;
+				if(fMatchEnv("OneDriveConsumer", string.Empty)) return true;
+
+				using(RegistryKey kAccs = Registry.CurrentUser.OpenSubKey(
+					"Software\\Microsoft\\OneDrive\\Accounts", false))
+				{
+					string[] vAccs = (((kAccs != null) ? kAccs.GetSubKeyNames() :
+						null) ?? new string[0]);
+
+					foreach(string strAcc in vAccs)
+					{
+						if(string.IsNullOrEmpty(strAcc)) { Debug.Assert(false); continue; }
+
+						using(RegistryKey kTenants = kAccs.OpenSubKey(
+							strAcc + "\\Tenants", false))
+						{
+							string[] vTenants = (((kTenants != null) ?
+								kTenants.GetSubKeyNames() : null) ?? new string[0]);
+
+							foreach(string strT in vTenants)
+							{
+								if(string.IsNullOrEmpty(strT)) { Debug.Assert(false); continue; }
+
+								using(RegistryKey kT = kTenants.OpenSubKey(strT, false))
+								{
+									string[] vPaths = (((kT != null) ?
+										kT.GetValueNames() : null) ?? new string[0]);
+
+									foreach(string strPath in vPaths)
+									{
+										if((strPath == null) || (strPath.Length < 4) ||
+											(strPath[1] != ':'))
+										{
+											Debug.Assert(false);
+											continue;
+										}
+
+										if(fMatch(strPath, string.Empty)) return true;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			catch(Exception) { Debug.Assert(false); }
+#endif
+			return false;
 		}
 	}
 }
