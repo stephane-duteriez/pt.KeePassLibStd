@@ -12,8 +12,8 @@
     <Product>pt.KeePass</Product>
     <Description>Unofficial port of KeePassLib to .NET Standard 2.0 offical KeePass project is here: https://keepass.info/</Description>
     <PackageIconUrl>https://cdn2.iconfinder.com/data/icons/ecqlipse2/KEEPASS.png</PackageIconUrl>
-    <RepositoryUrl>https://github.com/ArtjomP/pt.KeePassLibStd</RepositoryUrl>
-    <PackageProjectUrl>http://ptkeepass.azurewebsites.net/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AdminPanteam/pt.KeePassLibStd</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/AdminPanteam/pt.KeePass</PackageProjectUrl>
     <PackageLicenseUrl>https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt</PackageLicenseUrl>
   </PropertyGroup>
 
