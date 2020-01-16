@@ -375,6 +375,7 @@ namespace KeePassLib.Serialization
 
 		private bool TxfMoveWithTx()
 		{
+#if !NETSTANDARD2_0
 			IntPtr hTx = new IntPtr((int)NativeMethods.INVALID_HANDLE_VALUE);
 			Debug.Assert(hTx.ToInt64() == NativeMethods.INVALID_HANDLE_VALUE);
 			try
@@ -419,6 +420,7 @@ namespace KeePassLib.Serialization
 					catch(Exception) { Debug.Assert(false); }
 				}
 			}
+#endif
 
 			return false;
 		}
