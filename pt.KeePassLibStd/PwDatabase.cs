@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2019 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2020 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -51,8 +51,6 @@ namespace KeePassLib
 	{
 		internal const int DefaultHistoryMaxItems = 10; // -1 = unlimited
 		internal const long DefaultHistoryMaxSize = 6 * 1024 * 1024; // -1 = unlimited
-
-		private static bool m_bPrimaryCreated = false;
 
 		// Initializations: see Clear()
 		private PwGroup m_pgRootGroup = null;
@@ -111,7 +109,7 @@ namespace KeePassLib
 
 		private IStatusLogger m_slStatus = null;
 
-		private static string m_strLocalizedAppName = string.Empty;
+		private static string g_strLocalizedAppName = string.Empty;
 
 		// private const string StrBackupExtension = ".bak";
 
@@ -119,16 +117,14 @@ namespace KeePassLib
 		/// Get the root group that contains all groups and entries stored in the
 		/// database.
 		/// </summary>
-		/// <returns>Root group. The return value is <c>null</c>, if no database
-		/// has been opened.</returns>
+		/// <returns>Root group. The return value is <c>null</c>, if the database
+		/// is not open.</returns>
 		public PwGroup RootGroup
 		{
 			get { return m_pgRootGroup; }
 			set
 			{
-				Debug.Assert(value != null);
-				if(value == null) throw new ArgumentNullException("value");
-
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_pgRootGroup = value;
 			}
 		}
@@ -170,8 +166,7 @@ namespace KeePassLib
 			get { return m_pwUserKey; }
 			set
 			{
-				Debug.Assert(value != null); if(value == null) throw new ArgumentNullException("value");
-
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_pwUserKey = value;
 			}
 		}
@@ -190,8 +185,8 @@ namespace KeePassLib
 			get { return m_strName; }
 			set
 			{
-				Debug.Assert(value != null);
-				if(value != null) m_strName = value;
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
+				m_strName = value;
 			}
 		}
 
@@ -209,8 +204,8 @@ namespace KeePassLib
 			get { return m_strDesc; }
 			set
 			{
-				Debug.Assert(value != null);
-				if(value != null) m_strDesc = value;
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
+				m_strDesc = value;
 			}
 		}
 
@@ -228,8 +223,8 @@ namespace KeePassLib
 			get { return m_strDefaultUserName; }
 			set
 			{
-				Debug.Assert(value != null);
-				if(value != null) m_strDefaultUserName = value;
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
+				m_strDefaultUserName = value;
 			}
 		}
 
@@ -287,8 +282,8 @@ namespace KeePassLib
 			get { return m_uuidDataCipher; }
 			set
 			{
-				Debug.Assert(value != null);
-				if(value != null) m_uuidDataCipher = value;
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
+				m_uuidDataCipher = value;
 			}
 		}
 
@@ -315,7 +310,7 @@ namespace KeePassLib
 			get { return m_kdfParams; }
 			set
 			{
-				if(value == null) throw new ArgumentNullException("value");
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_kdfParams = value;
 			}
 		}
@@ -328,8 +323,7 @@ namespace KeePassLib
 			get { return m_memProtConfig; }
 			set
 			{
-				Debug.Assert(value != null); if(value == null) throw new ArgumentNullException("value");
-				
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_memProtConfig = value;
 			}
 		}
@@ -365,7 +359,7 @@ namespace KeePassLib
 			get { return m_pwLastSelectedGroup; }
 			set
 			{
-				Debug.Assert(value != null); if(value == null) throw new ArgumentNullException("value");
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_pwLastSelectedGroup = value;
 			}
 		}
@@ -375,7 +369,7 @@ namespace KeePassLib
 			get { return m_pwLastTopVisibleGroup; }
 			set
 			{
-				Debug.Assert(value != null); if(value == null) throw new ArgumentNullException("value");
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_pwLastTopVisibleGroup = value;
 			}
 		}
@@ -391,7 +385,7 @@ namespace KeePassLib
 			get { return m_pwRecycleBin; }
 			set
 			{
-				Debug.Assert(value != null); if(value == null) throw new ArgumentNullException("value");
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_pwRecycleBin = value;
 			}
 		}
@@ -411,7 +405,7 @@ namespace KeePassLib
 			get { return m_pwEntryTemplatesGroup; }
 			set
 			{
-				Debug.Assert(value != null); if(value == null) throw new ArgumentNullException("value");
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
 				m_pwEntryTemplatesGroup = value;
 			}
 		}
@@ -515,8 +509,12 @@ namespace KeePassLib
 		/// </summary>
 		public static string LocalizedAppName
 		{
-			get { return m_strLocalizedAppName; }
-			set { Debug.Assert(value != null); m_strLocalizedAppName = value; }
+			get { return g_strLocalizedAppName; }
+			set
+			{
+				if(value == null) { Debug.Assert(false); throw new ArgumentNullException("value"); }
+				g_strLocalizedAppName = value;
+			}
 		}
 
 		/// <summary>
@@ -524,8 +522,6 @@ namespace KeePassLib
 		/// </summary>
 		public PwDatabase()
 		{
-			if(m_bPrimaryCreated == false) m_bPrimaryCreated = true;
-
 			Clear();
 		}
 
