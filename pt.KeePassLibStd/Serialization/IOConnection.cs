@@ -270,6 +270,7 @@ namespace KeePassLib.Serialization
 		public static readonly string WrhMoveFileTo = "MoveFileTo";
 
 		public static event EventHandler<IOAccessEventArgs> IOAccessPre;
+		public static event EventHandler<IOWebRequestEventArgs> IOWebRequestPre;
 
 #if !KeePassLibSD && !NETSTANDARD2_0
 #if !KeePassUAP
@@ -368,6 +369,13 @@ namespace KeePassLib.Serialization
 			bool? ob = p.GetBool(IocKnownProperties.PreAuth);
 			if(ob.HasValue) request.PreAuthenticate = ob.Value;
 #endif
+
+			if(IOConnection.IOWebRequestPre != null)
+			{
+				IOWebRequestEventArgs e = new IOWebRequestEventArgs(request,
+					((ioc != null) ? ioc.CloneDeep() : null));
+				IOConnection.IOWebRequestPre(null, e);
+			}
 		}
 
 		internal static void ConfigureWebClient(WebClient wc)
@@ -548,13 +556,13 @@ namespace KeePassLib.Serialization
 			PrepareWebAccess(ioc);
 
 			IOWebClient wc = new IOWebClient(ioc);
-			ConfigureWebClient(wc);
 
 			if((ioc.UserName.Length > 0) || (ioc.Password.Length > 0))
 				wc.Credentials = new NetworkCredential(ioc.UserName, ioc.Password);
-			else if(NativeLib.IsUnix()) // Mono requires credentials
+			else if(MonoWorkarounds.IsRequired(688007))
 				wc.Credentials = new NetworkCredential("anonymous", string.Empty);
 
+			ConfigureWebClient(wc);
 			return wc;
 		}
 
@@ -563,13 +571,13 @@ namespace KeePassLib.Serialization
 			PrepareWebAccess(ioc);
 
 			WebRequest req = WebRequest.Create(ioc.Path);
-			ConfigureWebRequest(req, ioc);
 
 			if((ioc.UserName.Length > 0) || (ioc.Password.Length > 0))
 				req.Credentials = new NetworkCredential(ioc.UserName, ioc.Password);
-			else if(NativeLib.IsUnix()) // Mono requires credentials
+			else if(MonoWorkarounds.IsRequired(688007))
 				req.Credentials = new NetworkCredential("anonymous", string.Empty);
 
+			ConfigureWebRequest(req, ioc);
 			return req;
 		}
 
@@ -738,7 +746,7 @@ namespace KeePassLib.Serialization
 #if NETSTANDARD2_0
 			if (iocFrom.IsLocalFile()) { m_FilesProvider.MoveFile(iocFrom.Path, iocTo.Path); return; }
 #else
-			if (iocFrom.IsLocalFile()) { File.Move(iocFrom.Path, iocTo.Path); return; }
+			if(iocFrom.IsLocalFile()) { File.Move(iocFrom.Path, iocTo.Path); return; }
 #endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
