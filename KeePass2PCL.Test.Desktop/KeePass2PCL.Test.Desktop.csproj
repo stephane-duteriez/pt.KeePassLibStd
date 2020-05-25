@@ -81,7 +81,7 @@
       <Version>1.68.3</Version>
     </PackageReference>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe">
-      <Version>4.7.0</Version>
+      <Version>4.7.1</Version>
     </PackageReference>
     <PackageReference Include="System.Security.Cryptography.ProtectedData">
       <Version>4.7.0</Version>
