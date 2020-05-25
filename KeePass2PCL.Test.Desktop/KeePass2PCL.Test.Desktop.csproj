@@ -78,7 +78,7 @@
       <Version>1.0.2</Version>
     </PackageReference>
     <PackageReference Include="SkiaSharp">
-      <Version>1.56.1</Version>
+      <Version>1.68.3</Version>
     </PackageReference>
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe">
       <Version>4.7.0</Version>
