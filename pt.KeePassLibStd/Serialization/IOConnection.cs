@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2020 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2021 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -708,7 +708,7 @@ namespace KeePassLib.Serialization
 #if NETSTANDARD2_0
 			if (ioc.IsLocalFile()) { m_FilesProvider.DeleteFile(ioc.Path); return; }
 #else
-			if (ioc.IsLocalFile()) { File.Delete(ioc.Path); return; }
+			if(ioc.IsLocalFile()) { File.Delete(ioc.Path); return; }
 #endif
 
 #if !KeePassLibSD && !NETSTANDARD2_0
