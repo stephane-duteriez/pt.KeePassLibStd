@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>2.49.0</Version>
+    <Version>2.50.0</Version>
     <Authors>ArtjomP</Authors>
     <Company>Panteam</Company>
     <PackageTags>KeePass;KeePassLib;</PackageTags>
@@ -22,8 +22,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="2.80.2" />
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="5.0.0" />
+    <PackageReference Include="SkiaSharp" Version="2.80.3" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="6.0.0" />
   </ItemGroup>
 
 </Project>

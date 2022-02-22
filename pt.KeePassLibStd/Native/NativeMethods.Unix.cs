@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2021 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -75,8 +75,8 @@ namespace KeePassLib.Native
 		{
 			if(f == null) { Debug.Assert(false); return; }
 
-			// The following crashes under Mac OS X (SIGSEGV in native code,
-			// not just an exception), thus skip it when we're on Mac OS X;
+			// The following crashes under MacOS (SIGSEGV in native code,
+			// not just an exception), thus skip it when we are on MacOS;
 			// https://sourceforge.net/projects/keepass/forums/forum/329221/topic/5860588
 			if(NativeLib.GetPlatformID() == PlatformID.MacOSX) return;
 
@@ -114,12 +114,12 @@ namespace KeePassLib.Native
 
 
 		// =============================================================
-		// LibGCrypt 1.8.1
+		// LibGCrypt 1.8.1-1.9.4+
 
 		private const string LibGCrypt = "libgcrypt.so.20";
 
 		internal const int GCRY_CIPHER_AES256 = 9;
-		internal const int GCRY_CIPHER_MODE_ECB = 1;
+		internal const int GCRY_CIPHER_MODE_CBC = 3;
 
 		[DllImport(LibGCrypt)]
 		internal static extern IntPtr gcry_check_version(IntPtr lpReqVersion);
@@ -134,6 +134,10 @@ namespace KeePassLib.Native
 		[DllImport(LibGCrypt)]
 		internal static extern uint gcry_cipher_setkey(IntPtr h, IntPtr pbKey,
 			IntPtr cbKey); // cbKey is size_t
+
+		[DllImport(LibGCrypt)]
+		internal static extern uint gcry_cipher_setiv(IntPtr h, IntPtr pbIV,
+			IntPtr cbIV); // cbIV is size_t
 
 		[DllImport(LibGCrypt)]
 		internal static extern uint gcry_cipher_encrypt(IntPtr h, IntPtr pbOut,
