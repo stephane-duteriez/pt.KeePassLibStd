@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -110,13 +110,12 @@ namespace KeePassLib.Native
 			}
 			catch(Exception) { Debug.Assert(false); }
 		}
+#endif
 
+        // =============================================================
+        // LibGCrypt 1.8.1-1.9.4+
 
-
-		// =============================================================
-		// LibGCrypt 1.8.1-1.9.4+
-
-		private const string LibGCrypt = "libgcrypt.so.20";
+        private const string LibGCrypt = "libgcrypt.so.20";
 
 		internal const int GCRY_CIPHER_AES256 = 9;
 		internal const int GCRY_CIPHER_MODE_CBC = 3;
@@ -142,7 +141,24 @@ namespace KeePassLib.Native
 		[DllImport(LibGCrypt)]
 		internal static extern uint gcry_cipher_encrypt(IntPtr h, IntPtr pbOut,
 			IntPtr cbOut, IntPtr pbIn, IntPtr cbIn); // cb* are size_t
-#endif
+
+		// =============================================================
+		// LibArgon2 20190702+
+
+		// Debian 11
+		[DllImport("libargon2.so.0", EntryPoint = "argon2_hash")]
+		internal static extern int argon2_hash_u0(uint t_cost, uint m_cost,
+			uint parallelism, IntPtr pwd, IntPtr pwdlen, IntPtr salt,
+			IntPtr saltlen, IntPtr hash, IntPtr hashlen, IntPtr encoded,
+			IntPtr encodedlen, int type, uint version);
+		// Fedora 34
+		[DllImport("libargon2.so.1", EntryPoint = "argon2_hash")]
+		internal static extern int argon2_hash_u1(uint t_cost, uint m_cost,
+			uint parallelism, IntPtr pwd, IntPtr pwdlen, IntPtr salt,
+			IntPtr saltlen, IntPtr hash, IntPtr hashlen, IntPtr encoded,
+			IntPtr encodedlen, int type, uint version);
+		// Cf. argon2_hash_w32 and argon2_hash_w64
+
 		/* internal static IntPtr Utf8ZFromString(string str)
 		{
 			byte[] pb = StrUtil.Utf8.GetBytes(str ?? string.Empty);

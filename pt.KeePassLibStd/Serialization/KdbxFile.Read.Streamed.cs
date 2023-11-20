@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ namespace KeePassLib.Serialization
 		}
 
 		private bool m_bReadNextNode = true;
-		private Stack<PwGroup> m_ctxGroups = new Stack<PwGroup>();
+		private readonly Stack<PwGroup> m_ctxGroups = new Stack<PwGroup>();
 		private PwGroup m_ctxGroup = null;
 		private PwEntry m_ctxEntry = null;
 		private string m_ctxStringName = null;

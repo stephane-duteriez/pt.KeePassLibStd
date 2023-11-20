@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -278,18 +278,16 @@ namespace KeePassLib.Security
 			}
 #endif
 
-			byte[] pbKey32 = g_pbKey32;
-			if(pbKey32 == null)
+			byte[] pbKey = g_pbKey32;
+			if(pbKey == null)
 			{
-				pbKey32 = GetRandom32();
-
-				byte[] pbUpd = Interlocked.Exchange<byte[]>(ref g_pbKey32, pbKey32);
-				if(pbUpd != null) pbKey32 = pbUpd;
+				Interlocked.CompareExchange<byte[]>(ref g_pbKey32, GetRandom32(), null);
+				pbKey = g_pbKey32;
 			}
 
 			byte[] pbIV = new byte[12];
-			MemUtil.UInt64ToBytesEx((ulong)m_lID, pbIV, 4);
-			using(ChaCha20Cipher c = new ChaCha20Cipher(pbKey32, pbIV, true))
+			MemUtil.Int64ToBytesEx(m_lID, pbIV, 4);
+			using(ChaCha20Cipher c = new ChaCha20Cipher(pbKey, pbIV, true))
 			{
 				c.Encrypt(m_pbData, 0, m_pbData.Length);
 			}
@@ -309,7 +307,7 @@ namespace KeePassLib.Security
 			else if(m_mp == PbMemProt.ChaCha20)
 			{
 				byte[] pbIV = new byte[12];
-				MemUtil.UInt64ToBytesEx((ulong)m_lID, pbIV, 4);
+				MemUtil.Int64ToBytesEx(m_lID, pbIV, 4);
 				using(ChaCha20Cipher c = new ChaCha20Cipher(g_pbKey32, pbIV, true))
 				{
 					c.Decrypt(m_pbData, 0, m_pbData.Length);

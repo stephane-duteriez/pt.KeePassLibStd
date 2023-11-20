@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -188,6 +188,17 @@ namespace KeePassLib.Utility
 			}
 
 			return l.ToArray();
+		}
+
+		internal static byte[] ParseBase32(string str, bool bAutoPad)
+		{
+			if(str == null) { Debug.Assert(false); return null; }
+
+			// https://sourceforge.net/p/keepass/discussion/329220/thread/59b61fddea/
+			if(bAutoPad && ((str.Length % 8) != 0))
+				str = str.PadRight((str.Length & ~7) + 8, '=');
+
+			return ParseBase32(str);
 		}
 
 		/// <summary>
@@ -548,25 +559,24 @@ namespace KeePassLib.Utility
 			ulong h = hI;
 
 			for(int i = iOffset; i < m4; i += 4)
-				h = (h ^ pb[i] ^ ((ulong)pb[i + 1] << 8) ^
-					((ulong)pb[i + 2] << 16) ^ ((ulong)pb[i + 3] << 24)) *
-					0x5EA4A1E35C8ACDA3UL;
+				h = (pb[i] ^ ((ulong)pb[i + 1] << 8) ^ ((ulong)pb[i + 2] << 16) ^
+					((ulong)pb[i + 3] << 24) ^ h) * 0x5EA4A1E35C8ACDA3UL;
 
 			switch(cbR)
 			{
 				case 1:
 					Debug.Assert(m4 == (m - 1));
-					h = (h ^ pb[m4]) * 0x54A1CC5970AF27BBUL;
+					h = (pb[m4] ^ h) * 0x54A1CC5970AF27BBUL;
 					break;
 				case 2:
 					Debug.Assert(m4 == (m - 2));
-					h = (h ^ pb[m4] ^ ((ulong)pb[m4 + 1] << 8)) *
+					h = (pb[m4] ^ ((ulong)pb[m4 + 1] << 8) ^ h) *
 						0x6C45CB2537A4271DUL;
 					break;
 				case 3:
 					Debug.Assert(m4 == (m - 3));
-					h = (h ^ pb[m4] ^ ((ulong)pb[m4 + 1] << 8) ^
-						((ulong)pb[m4 + 2] << 16)) * 0x59B8E8939E19695DUL;
+					h = (pb[m4] ^ ((ulong)pb[m4 + 1] << 8) ^
+						((ulong)pb[m4 + 2] << 16) ^ h) * 0x59B8E8939E19695DUL;
 					break;
 				default:
 					Debug.Assert(m4 == m);
@@ -860,6 +870,19 @@ namespace KeePassLib.Utility
 			return true;
 		}
 
+		internal static int Count(byte[] pb, byte bt)
+		{
+			if(pb == null) { Debug.Assert(false); return 0; }
+
+			int cb = pb.Length, r = 0;
+			for(int i = 0; i < cb; ++i)
+			{
+				if(pb[i] == bt) ++r;
+			}
+
+			return r;
+		}
+
 		[MethodImpl(MioNoOptimize)]
 		internal static void DisposeIfPossible(object o)
 		{
@@ -922,6 +945,16 @@ namespace KeePassLib.Utility
 			if(IntPtr.Size >= 8)
 				return new IntPtr(unchecked(p.ToInt64() + cb));
 			return new IntPtr(unchecked(p.ToInt32() + (int)cb));
+		}
+
+		// Cf. Array.Empty<T>() of .NET 4.6
+		private static class EmptyArrayEx<T>
+		{
+			internal static readonly T[] Instance = new T[0];
+		}
+		internal static T[] EmptyArray<T>()
+		{
+			return EmptyArrayEx<T>.Instance;
 		}
 	}
 

@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -202,7 +202,7 @@ namespace KeePassLib.Serialization
 		private const string ElemCustomData = "CustomData";
 		private const string ElemStringDictExItem = "Item";
 
-		private PwDatabase m_pwDatabase; // Not null, see constructor
+		private readonly PwDatabase m_pwDatabase; // Not null
 		private bool m_bUsedOnce = false;
 
 		private XmlWriter m_xmlWriter = null;
@@ -290,6 +290,13 @@ namespace KeePassLib.Serialization
 		{
 			get { return m_uForceVersion; }
 			set { m_uForceVersion = value; }
+		}
+
+		private bool m_bHeaderOnly = false;
+		internal bool HeaderOnly
+		{
+			get { return m_bHeaderOnly; }
+			set { m_bHeaderOnly = value; }
 		}
 
 		private string m_strDetachBins = null;
@@ -532,20 +539,18 @@ namespace KeePassLib.Serialization
 
 			strName = UrlUtil.GetSafeFileName(strName);
 
+			string strDesc = UrlUtil.StripExtension(strName);
+			string strExt = UrlUtil.GetExtension(strName);
+
 			string strPath;
 			int iTry = 1;
+			NumberFormatInfo nfi = NumberFormatInfo.InvariantInfo;
 			do
 			{
 				strPath = UrlUtil.EnsureTerminatingSeparator(strSaveDir, false);
 
-				string strDesc = UrlUtil.StripExtension(strName);
-				string strExt = UrlUtil.GetExtension(strName);
-
 				strPath += strDesc;
-				if(iTry > 1)
-					strPath += " (" + iTry.ToString(NumberFormatInfo.InvariantInfo) +
-						")";
-
+				if(iTry > 1) strPath += " (" + iTry.ToString(nfi) + ")";
 				if(!string.IsNullOrEmpty(strExt)) strPath += "." + strExt;
 
 				++iTry;

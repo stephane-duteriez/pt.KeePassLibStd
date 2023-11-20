@@ -1,6 +1,6 @@
 ﻿/*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -396,17 +396,13 @@ namespace KeePassLib.Utility
 			// when shrinking images, do not apply a -0.5 offset,
 			// otherwise the image is cropped on the bottom/right
 			// side; this applies to all interpolation modes
-			if(rDest.Width > rSource.Width)
-				rSource.X = rSource.X - 0.5f;
-			if(rDest.Height > rSource.Height)
-				rSource.Y = rSource.Y - 0.5f;
+			if(rDest.Width > rSource.Width) rSource.X -= 0.5f;
+			if(rDest.Height > rSource.Height) rSource.Y -= 0.5f;
 
 			// When shrinking, apply a +0.5 offset, such that the
 			// scaled image is less cropped on the bottom/right side
-			if(rDest.Width < rSource.Width)
-				rSource.X = rSource.X + 0.5f;
-			if(rDest.Height < rSource.Height)
-				rSource.Y = rSource.Y + 0.5f;
+			if(rDest.Width < rSource.Width) rSource.X += 0.5f;
+			if(rDest.Height < rSource.Height) rSource.Y += 0.5f;
 		}
 
 #if DEBUG
@@ -579,6 +575,27 @@ namespace KeePassLib.Utility
 				if(bRemoveProp) img.RemovePropertyItem(ExifOrientation);
 			}
 			catch(Exception) { Debug.Assert(false); }
+		}
+
+		// Compatible with System.Drawing.FontConverter
+		internal static string GraphicsUnitToString(GraphicsUnit gu)
+		{
+			string str;
+
+			switch(gu)
+			{
+				case GraphicsUnit.Display: str = "display"; break;
+				case GraphicsUnit.Document: str = "doc"; break;
+				case GraphicsUnit.Inch: str = "in"; break;
+				case GraphicsUnit.Millimeter: str = "mm"; break;
+				case GraphicsUnit.Pixel: str = "px"; break;
+				case GraphicsUnit.Point: str = "pt"; break;
+				case GraphicsUnit.World: str = "world"; break;
+
+				default: Debug.Assert(false); str = gu.ToString(); break;
+			}
+
+			return str;
 		}
 #endif
 	}

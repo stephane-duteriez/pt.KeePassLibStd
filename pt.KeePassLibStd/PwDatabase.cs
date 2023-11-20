@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ namespace KeePassLib
 		private string m_strDefaultUserName = string.Empty;
 		private DateTime m_dtDefaultUserChanged = PwDefs.DtDefaultNow;
 		private uint m_uMntncHistoryDays = 365;
-		private System.Drawing.Color m_clr = System.Drawing.Color.Empty;
+		private Color m_clr = Color.Empty;
 
 		private DateTime m_dtKeyLastChanged = PwDefs.DtDefaultNow;
 		private long m_lKeyChangeRecDays = -1;
@@ -244,7 +244,7 @@ namespace KeePassLib
 			set { m_uMntncHistoryDays = value; }
 		}
 
-		public System.Drawing.Color Color
+		public Color Color
 		{
 			get { return m_clr; }
 			set { m_clr = value; }
@@ -551,7 +551,7 @@ namespace KeePassLib
 			m_strDefaultUserName = string.Empty;
 			m_dtDefaultUserChanged = dtNow;
 			m_uMntncHistoryDays = 365;
-			m_clr = System.Drawing.Color.Empty;
+			m_clr = Color.Empty;
 
 			m_dtKeyLastChanged = dtNow;
 			m_lKeyChangeRecDays = -1;
@@ -619,10 +619,14 @@ namespace KeePassLib
 		public void Open(IOConnectionInfo ioSource, CompositeKey pwKey,
 			IStatusLogger slLogger)
 		{
-			Debug.Assert(ioSource != null);
-			if(ioSource == null) throw new ArgumentNullException("ioSource");
-			Debug.Assert(pwKey != null);
-			if(pwKey == null) throw new ArgumentNullException("pwKey");
+			Open(ioSource, pwKey, slLogger, false);
+		}
+
+		private void Open(IOConnectionInfo ioSource, CompositeKey pwKey,
+			IStatusLogger slLogger, bool bHeaderOnly)
+		{
+			if(ioSource == null) { Debug.Assert(false); throw new ArgumentNullException("ioSource"); }
+			if(pwKey == null) { Debug.Assert(false); throw new ArgumentNullException("pwKey"); }
 
 			Close();
 
@@ -636,6 +640,7 @@ namespace KeePassLib
 				m_bModified = false;
 
 				KdbxFile kdbx = new KdbxFile(this);
+				kdbx.HeaderOnly = bHeaderOnly;
 				kdbx.DetachBinaries = m_strDetachBins;
 
 				using(Stream s = IOConnection.OpenRead(ioSource))
@@ -742,6 +747,19 @@ namespace KeePassLib
 			Clear();
 		}
 
+		/// <summary>
+		/// Load only the unencrypted header of a database file.
+		/// In the returned database object, any data that is not stored
+		/// in the unencrypted header is set to its default value.
+		/// Intended primarily for plugins.
+		/// </summary>
+		public static PwDatabase LoadHeader(IOConnectionInfo ioSource)
+		{
+			PwDatabase pd = new PwDatabase();
+			pd.Open(ioSource, new CompositeKey(), null, true);
+			return pd;
+		}
+
 		public void MergeIn(PwDatabase pdSource, PwMergeMethod mm)
 		{
 			MergeIn(pdSource, mm, null);
@@ -823,7 +841,7 @@ namespace KeePassLib
 					// else if(mm == PwMergeMethod.KeepExisting) ...
 				}
 
-				return ((slStatus != null) ? slStatus.ContinueWork() : true);
+				return ((slStatus == null) || slStatus.ContinueWork());
 			};
 
 			EntryHandler ehSrc = delegate(PwEntry pe)
@@ -858,7 +876,7 @@ namespace KeePassLib
 
 					const PwCompareOptions cmpOpt = (PwCompareOptions.IgnoreParentGroup |
 						PwCompareOptions.IgnoreLastAccess | PwCompareOptions.IgnoreHistory |
-						PwCompareOptions.NullEmptyEquivStd);
+						PwCompareOptions.NullEmptyEquivStd); // Cf. EntryUtil.GetDifferences
 					bool bEquals = peLocal.EqualsEntry(pe, cmpOpt, MemProtCmpMode.None);
 
 					bool bOrgBackup = !bEquals;
@@ -884,7 +902,7 @@ namespace KeePassLib
 					MergeEntryHistory(peLocal, pe, mm);
 				}
 
-				return ((slStatus != null) ? slStatus.ContinueWork() : true);
+				return ((slStatus == null) || slStatus.ContinueWork());
 			};
 
 			ghSrc(pdSource.RootGroup);

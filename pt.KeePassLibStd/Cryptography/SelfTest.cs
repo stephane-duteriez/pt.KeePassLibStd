@@ -1,6 +1,6 @@
 /*
   KeePass Password Safe - The Open-Source Password Manager
-  Copyright (C) 2003-2022 Dominik Reichl <dominik.reichl@t-online.de>
+  Copyright (C) 2003-2023 Dominik Reichl <dominik.reichl@t-online.de>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -243,7 +243,7 @@ namespace KeePassLib.Cryptography
 		private static void TestChaCha20(Random r)
 		{
 			// ======================================================
-			// Test vector from RFC 7539, section 2.3.2
+			// Test vector from RFC 8439, section 2.3.2
 
 			byte[] pbKey = new byte[32];
 			for(int i = 0; i < 32; ++i) pbKey[i] = (byte)i;
@@ -276,7 +276,7 @@ namespace KeePassLib.Cryptography
 
 #if DEBUG
 			// ======================================================
-			// Test vector from RFC 7539, section 2.4.2
+			// Test vector from RFC 8439, section 2.4.2
 
 			pbIV[3] = 0;
 
@@ -314,7 +314,7 @@ namespace KeePassLib.Cryptography
 			}
 
 			// ======================================================
-			// Test vector from RFC 7539, appendix A.2 #2
+			// Test vector from RFC 8439, appendix A.2 #2
 
 			Array.Clear(pbKey, 0, pbKey.Length);
 			pbKey[31] = 1;
@@ -395,7 +395,7 @@ namespace KeePassLib.Cryptography
 			};
 
 			// The first 4 bytes are set to zero and a large counter
-			// is used; this makes the RFC 7539 version of ChaCha20
+			// is used; this makes the RFC 8439 version of ChaCha20
 			// compatible with the original specification by
 			// D. J. Bernstein.
 			pbIV = new byte[12] { 0x00, 0x00, 0x00, 0x00,
@@ -900,11 +900,11 @@ namespace KeePassLib.Cryptography
 				"37383930313233343536373839303132");
 			if(HmacOtp.GenerateTimeOtp(pbSecret,
 				new DateTime(1970, 1, 1, 0, 0, 59, DateTimeKind.Utc), 0, 8,
-				"HMAC-SHA-256") != "46119246")
+				HmacOtp.AlgHmacSha256) != "46119246")
 				throw new SecurityException("TimeOtp-SHA256-1");
 			if(HmacOtp.GenerateTimeOtp(pbSecret,
 				new DateTime(2603, 10, 11, 11, 33, 20, DateTimeKind.Utc), 0, 8,
-				"HMAC-SHA-256") != "77737706")
+				HmacOtp.AlgHmacSha256) != "77737706")
 				throw new SecurityException("TimeOtp-SHA256-2");
 
 			pbSecret = MemUtil.HexStringToByteArray("31323334353637383930313233343536" +
@@ -912,11 +912,11 @@ namespace KeePassLib.Cryptography
 				"39303132333435363738393031323334");
 			if(HmacOtp.GenerateTimeOtp(pbSecret,
 				new DateTime(1970, 1, 1, 0, 0, 59, DateTimeKind.Utc), 0, 8,
-				"HMAC-SHA-512") != "90693936")
+				HmacOtp.AlgHmacSha512) != "90693936")
 				throw new SecurityException("TimeOtp-SHA512-1");
 			if(HmacOtp.GenerateTimeOtp(pbSecret,
 				new DateTime(2603, 10, 11, 11, 33, 20, DateTimeKind.Utc), 0, 8,
-				"HMAC-SHA-512") != "47863826")
+				HmacOtp.AlgHmacSha512) != "47863826")
 				throw new SecurityException("TimeOtp-SHA512-2");
 #endif
 		}
@@ -989,7 +989,10 @@ namespace KeePassLib.Cryptography
 
 				string strIns = new string(ch, c);
 				str = str.Insert(x, strIns);
-				ps = ps.Insert(x, strIns);
+				if((r.Next() & 1) == 0)
+					ps = ps.Insert(x, ("ABC" + strIns + "XY").ToCharArray(),
+						3, strIns.Length);
+				else ps = ps.Insert(x, strIns);
 
 				if(ps.IsProtected != bProt)
 					throw new SecurityException("ProtectedString-11");
@@ -1017,6 +1020,16 @@ namespace KeePassLib.Cryptography
 				throw new SecurityException("ProtectedString-15");
 			if(!ps.Equals(new ProtectedString(false, "ABCDEFGHI"), false))
 				throw new SecurityException("ProtectedString-16");
+			if(!object.ReferenceEquals(ps, ps.Trim()))
+				throw new SecurityException("ProtectedString-17");
+
+			str = "\t\t \r\nA\tB C\r\n ";
+			ps = (new ProtectedString(false, str)).Trim();
+			ps2 = (new ProtectedString(true, str)).Trim();
+			if(ps.IsProtected || !ps2.IsProtected)
+				throw new SecurityException("ProtectedString-18");
+			if((ps.ReadString() != str.Trim()) || (ps2.ReadString() != str.Trim()))
+				throw new SecurityException("ProtectedString-19");
 #endif
 		}
 
